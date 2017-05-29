@@ -1,0 +1,23 @@
+cflags:
+{
+    -std=c99
+    -I$MANGOH_ROOT/apps/RedSensorToCloud/sensorsComponent
+}
+
+requires:
+{
+    api:
+    {
+        airVantage/le_avdata.api
+    }
+
+    component:
+    {
+        sensorsComponent
+    }
+}
+
+sources:
+{
+    avPublisher.c
+}

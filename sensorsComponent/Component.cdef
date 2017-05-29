@@ -1,0 +1,34 @@
+cflags:
+{
+    -std=c99
+}
+
+requires:
+{
+    api:
+    {
+        le_adc.api
+    }
+
+    file:
+    {
+        /sys/devices/i2c-0/0-0076/iio:device0/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device0/
+        /sys/devices/i2c-0/0-0076/iio:device0/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device0/
+        // TODO: Enable once filenames have been verified for the bmi160
+        // /sys/devices/i2c-0/0-0060/iio:device0/in_acc_x          /sys/devices/i2c-0/0-0060/iio:device0/
+        // /sys/devices/i2c-0/0-0060/iio:device0/in_acc_y          /sys/devices/i2c-0/0-0060/iio:device0/
+        // /sys/devices/i2c-0/0-0060/iio:device0/in_acc_z          /sys/devices/i2c-0/0-0060/iio:device0/
+        // /sys/devices/i2c-0/0-0060/iio:device0/in_gyro_x         /sys/devices/i2c-0/0-0060/iio:device0/
+        // /sys/devices/i2c-0/0-0060/iio:device0/in_gyro_y         /sys/devices/i2c-0/0-0060/iio:device0/
+        // /sys/devices/i2c-0/0-0060/iio:device0/in_gyro_z         /sys/devices/i2c-0/0-0060/iio:device0/
+    }
+}
+
+sources:
+{
+    init.c
+    sensorUtils.c
+    lightSensor.c
+    pressureSensor.c
+    accelerometer.c
+}

@@ -1,0 +1,27 @@
+sandboxed: true
+start: manual
+version: 0.1
+
+executables:
+{
+    redSensorToCloud = ( avPublisherComponent sensorsComponent)
+}
+
+processes:
+{
+    run:
+    {
+        ( redSensorToCloud )
+    }
+
+    envVars:
+    {
+        LE_LOG_LEVEL = DEBUG
+    }
+}
+
+bindings:
+{
+    redSensorToCloud.sensorsComponent.le_adc -> modemService.le_adc
+    redSensorToCloud.avPublisherComponent.le_avdata -> avcService.le_avdata
+}

@@ -12,15 +12,16 @@ requires:
 
     file:
     {
-        /sys/devices/i2c-0/0-0076/iio:device0/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device0/
-        /sys/devices/i2c-0/0-0076/iio:device0/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device0/
-        // TODO: Enable once filenames have been verified for the bmi160
-        // /sys/devices/i2c-0/0-0060/iio:device0/in_acc_x          /sys/devices/i2c-0/0-0060/iio:device0/
-        // /sys/devices/i2c-0/0-0060/iio:device0/in_acc_y          /sys/devices/i2c-0/0-0060/iio:device0/
-        // /sys/devices/i2c-0/0-0060/iio:device0/in_acc_z          /sys/devices/i2c-0/0-0060/iio:device0/
-        // /sys/devices/i2c-0/0-0060/iio:device0/in_gyro_x         /sys/devices/i2c-0/0-0060/iio:device0/
-        // /sys/devices/i2c-0/0-0060/iio:device0/in_gyro_y         /sys/devices/i2c-0/0-0060/iio:device0/
-        // /sys/devices/i2c-0/0-0060/iio:device0/in_gyro_z         /sys/devices/i2c-0/0-0060/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_accel_x_raw    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_accel_y_raw    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_accel_z_raw    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_accel_scale    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_anglvel_x_raw  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_anglvel_y_raw  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_anglvel_z_raw  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0068/iio:device0/in_anglvel_scale  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/devices/i2c-0/0-0076/iio:device1/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device1/
+        /sys/devices/i2c-0/0-0076/iio:device1/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device1/
     }
 }
 

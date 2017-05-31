@@ -13,23 +13,52 @@
 
 //--------------------------------------------------------------------------------------------------
 /**
- * Represents a single logical sensor reading. The function pointers provide a generic way to read a
- * value and check if the reading exceeds the threshold for publishing.
+ * An abstract representation of a sensor
+ *
+ * Values are represented as void* because different sensors may produce double, uint32_t or a
+ * custom struct type. The only requirement is that all of the functions must expect the same type
+ * of value.
  */
 //--------------------------------------------------------------------------------------------------
 struct Item
 {
+    // A human readable name for the sensor
     const char *name;
+
+    // Reads a value from the sensor
     le_result_t (*read)(void *value);
+
+    // Checks to see if the value read exceeds the threshold relative to the last recorded value. If
+    // the function returns true, the readValue will be recorded.
     bool (*thresholdCheck)(const void *recordedValue, const void *readValue);
+
+    // Records the value into the given record.
     le_result_t (*record)(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
+
+    // Copies the sensor reading from src to dest. The management of the src and dest data is the
+    // responsibility of the caller.
     void (*copyValue)(void *dest, const void *src);
+
+    // Most recently read value from the sensor. Should be initialized to point at a variable large
+    // enough to store a sensor reading.
     void *lastValueRead;
+
+    // Most recently recorded value from the sensor. Must be initialized to point to a variable to
+    // store a reading and must be a differnt variable from what lastValueRead is pointing at.
     void *lastValueRecorded;
+
+    // Time when the last reading was recorded.
     uint64_t lastTimeRecorded;
+
+    // Time when the last reading was read.
     uint64_t lastTimeRead;
 };
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * 3D acceleration value.
+ */
+//--------------------------------------------------------------------------------------------------
 struct Acceleration
 {
     double x;
@@ -37,6 +66,11 @@ struct Acceleration
     double z;
 };
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * A 3D angular velocity value read from the accelerometer.
+ */
+//--------------------------------------------------------------------------------------------------
 struct Gyro
 {
     double x;
@@ -44,6 +78,11 @@ struct Gyro
     double z;
 };
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * A data structure that stores a single reading from all of the sensors.
+ */
+//--------------------------------------------------------------------------------------------------
 struct SensorReadings
 {
     int32_t lightLevel;
@@ -119,13 +158,28 @@ static le_avdata_SessionStateHandlerRef_t HandlerRef;
 static bool DeferredPublish = false;
 static uint64_t LastTimePublished = 0;
 
+
+//--------------------------------------------------------------------------------------------------
+/*
+ * Data storage for sensor readings.
+ *
+ * This struct contains the most recently read values from the sensors and the most recently
+ * recorded values from the sensors.
+ */
+//--------------------------------------------------------------------------------------------------
 static struct
 {
-    struct SensorReadings recorded;
-    struct SensorReadings read;
-    bool readPreviously;
-} SensorData = { .readPreviously=false };
+    struct SensorReadings recorded;  // sensor values most recently recorded
+    struct SensorReadings read;      // sensor values most recently read
+} SensorData;
 
+/* static bool ReadLightOnly; */
+
+//--------------------------------------------------------------------------------------------------
+/**
+ * An array representing all of the sensor values to read and publish
+ */
+//--------------------------------------------------------------------------------------------------
 struct Item Items[] =
 {
     {
@@ -192,10 +246,19 @@ struct Item Items[] =
  */
 //--------------------------------------------------------------------------------------------------
 
+
+//--------------------------------------------------------------------------------------------------
+/**
+ * Handles notification of LWM2M push status.
+ *
+ * This function will warn if there is an error in pushing data, but it does not make any attempt to
+ * retry pushing the data.
+ */
+//--------------------------------------------------------------------------------------------------
 static void PushCallbackHandler
 (
-    le_avdata_PushStatus_t status,
-    void* context
+    le_avdata_PushStatus_t status, ///< Push success/failure status
+    void* context                  ///< Not used
 )
 {
     switch (status)
@@ -215,6 +278,14 @@ static void PushCallbackHandler
 }
 
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Convenience function to get current time as uint64_t.
+ *
+ * @return
+ *      Current time as a uint64_t
+ */
+//--------------------------------------------------------------------------------------------------
 static uint64_t GetCurrentTimestamp(void)
 {
     struct timeval tv;
@@ -224,9 +295,23 @@ static uint64_t GetCurrentTimestamp(void)
 }
 
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Handler for the sensor sampling timer
+ *
+ * Each time this function is called due to timer expiry each sensor described in the Items array
+ * will be read. If any sensor item's thresholdCheck() function returns true, then that reading is
+ * recorded and a publish action is scheduled. The data will be published immediately unless fewer
+ * than MinIntervalBetweenPublish seconds have elapsed since the last publish. If that is the case,
+ * the publish will be deferred until the minimum wait has elapsed. If no publish has occurred for
+ * MaxIntervalBetweenPublish seconds, then a publish is forced. When a push is about to be executed
+ * the list of items is checked again for any entries which have not been recorded in greater than
+ * TimeToStale seconds. Stale items are recorded and then the record is published.
+ */
+//--------------------------------------------------------------------------------------------------
 static void SampleTimerHandler
 (
-    le_timer_Ref_t timer
+    le_timer_Ref_t timer  ///< Sensor sampling timer
 )
 {
     uint64_t now = GetCurrentTimestamp();
@@ -259,7 +344,7 @@ static void SampleTimerHandler
             LE_WARN("Failed to read %s", it->name);
         }
 
-        if ((now - it->lastTimeRecorded) > (TimeToStale * 1000) &&
+        if ((now - it->lastTimeRecorded) > (MaxIntervalBetweenPublish * 1000) &&
             it->lastTimeRead > LastTimePublished)
         {
             publish = true;
@@ -308,20 +393,35 @@ static void SampleTimerHandler
     }
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Read the light sensor
+ *
+ * @return
+ *      LE_OK on success.  Any other return value is a failure.
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t LightSensorRead
 (
-    void *value
+    void *value  ///< Pointer to the int32_t variable to store the reading in
 )
 {
     int32_t *v = value;
     return mangOH_ReadLightSensor(v);
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks to see if the light level has changed sufficiently to warrant recording of a new reading.
+ *
+ * @return
+ *      true if the threshold for recording has been exceeded
+ */
+//--------------------------------------------------------------------------------------------------
 static bool LightSensorThreshold
 (
-    const void *recordedValue,
-    const void *readValue
+    const void *recordedValue, ///< Last recorded light sensor reading
+    const void *readValue      ///< Most recent light sensor reading
 )
 {
     const int32_t *v1 = recordedValue;
@@ -330,11 +430,21 @@ static bool LightSensorThreshold
     return abs(*v1 - *v2) > 200;
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Records a light sensor reading at the given time into the given record
+ *
+ * @return
+ *      - LE_OK on success
+ *      - LE_OVERFLOW if the record is full
+ *      - LE_FAULT non-specific failure
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t LightSensorRecord
 (
-    le_avdata_RecordRef_t ref,
-    uint64_t timestamp,
-    void *value
+    le_avdata_RecordRef_t ref, ///< Record reference to record the value into
+    uint64_t timestamp,        ///< Timestamp to associate with the value
+    void *value                ///< The int32_t value to record
 )
 {
     const char *path = "Sensors/Light/Level";
@@ -348,11 +458,15 @@ static le_result_t LightSensorRecord
     return result;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Copies an int32_t light sensor reading between two void pointers
+ */
+//--------------------------------------------------------------------------------------------------
 static void LightSensorCopyValue
 (
-    void *dest,
-    const void *src
+    void *dest,      ///< copy destination
+    const void *src  ///< copy source
 )
 {
     int32_t *d = dest;
@@ -360,38 +474,62 @@ static void LightSensorCopyValue
     *d = *s;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Read the pressure sensor
+ *
+ * @return
+ *      LE_OK on success.  Any other return value is a failure.
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t PressureSensorRead
 (
-    void *value
+    void *value  ///< Pointer to a double to store the reading in
 )
 {
     double *v = value;
     return mangOH_ReadPressureSensor(v);
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks to see if the pressure has changed sufficiently to warrant recording of a new reading.
+ *
+ * @return
+ *      true if the threshold for recording has been exceeded
+ */
+//--------------------------------------------------------------------------------------------------
 static bool PressureSensorThreshold
 (
-    const void *recordedValue,
-    const void *readValue
+    const void *recordedValue, ///< Last recorded pressure reading
+    const void *readValue      ///< Most recent pressure reading
 )
 {
     const double *v1 = recordedValue;
     const double *v2 = readValue;
 
-    // TODO: What units is pressure in and what is a suitable threshold?
-    return fabs(*v1 - *v2) > 200.0;
+    return fabs(*v1 - *v2) > 1.0;
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Records a pressure sensor reading at the given time into the given record
+ *
+ * @return
+ *      - LE_OK on success
+ *      - LE_OVERFLOW if the record is full
+ *      - LE_FAULT non-specific failure
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t PressureSensorRecord
 (
-    le_avdata_RecordRef_t ref,
-    uint64_t timestamp,
-    void *value
+    le_avdata_RecordRef_t ref, ///< Record reference to record the value into
+    uint64_t timestamp,        ///< Timestamp to associate with the value
+    void *value                ///< The double value to record
 )
 {
     const char *path = "Sensors/Pressure/Pressure";
-    int32_t *v = value;
+    double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
     {
@@ -401,11 +539,15 @@ static le_result_t PressureSensorRecord
     return result;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Copies a double pressure reading between two void pointers
+ */
+//--------------------------------------------------------------------------------------------------
 static void PressureSensorCopyValue
 (
-    void *dest,
-    const void *src
+    void *dest,      ///< copy destination
+    const void *src  ///< copy source
 )
 {
     double *d = dest;
@@ -414,19 +556,35 @@ static void PressureSensorCopyValue
 }
 
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Read the temperature sensor
+ *
+ * @return
+ *      LE_OK on success.  Any other return value is a failure.
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t TemperatureSensorRead
 (
-    void *value
+    void *value  ///< Pointer to the double variable to store the reading in
 )
 {
     double *v = value;
     return mangOH_ReadTemperatureSensor(v);
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks to see if the temperature has changed sufficiently to warrant recording of a new reading.
+ *
+ * @return
+ *      true if the threshold for recording has been exceeded
+ */
+//--------------------------------------------------------------------------------------------------
 static bool TemperatureSensorThreshold
 (
-    const void *recordedValue,
-    const void *readValue
+    const void *recordedValue, ///< Last recorded temperature reading
+    const void *readValue      ///< Most recent temperature reading
 )
 {
     const double *v1 = recordedValue;
@@ -435,15 +593,25 @@ static bool TemperatureSensorThreshold
     return fabs(*v1 - *v2) > 2.0;
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Records a temperature reading at the given time into the given record
+ *
+ * @return
+ *      - LE_OK on success
+ *      - LE_OVERFLOW if the record is full
+ *      - LE_FAULT non-specific failure
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t TemperatureSensorRecord
 (
-    le_avdata_RecordRef_t ref,
-    uint64_t timestamp,
-    void *value
+    le_avdata_RecordRef_t ref, ///< Record reference to record the value into
+    uint64_t timestamp,        ///< Timestamp to associate with the value
+    void *value                ///< The double value to record
 )
 {
     const char *path = "Sensors/Pressure/Temperature";
-    int32_t *v = value;
+    double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
     {
@@ -453,7 +621,11 @@ static le_result_t TemperatureSensorRecord
     return result;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Copies an double temperature reading between two void pointers
+ */
+//--------------------------------------------------------------------------------------------------
 static void TemperatureSensorCopyValue
 (
     void *dest,
@@ -465,20 +637,35 @@ static void TemperatureSensorCopyValue
     *d = *s;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Read the acceleration from the accelerometer
+ *
+ * @return
+ *      LE_OK on success.  Any other return value is a failure.
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t AccelerometerRead
 (
-    void *value
+    void *value  ///< Pointer to a struct Acceleration to store the reading in
 )
 {
     struct Acceleration *v = value;
     return mangOH_ReadAccelerometer(&v->x, &v->y, &v->z);
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks to see if the acceleration has changed sufficiently to warrant recording of a new reading.
+ *
+ * @return
+ *      true if the threshold for recording has been exceeded
+ */
+//--------------------------------------------------------------------------------------------------
 static bool AccelerometerThreshold
 (
-    const void *recordedValue,
-    const void *readValue
+    const void *recordedValue, ///< Last recorded acceleration reading
+    const void *readValue      ///< Most recent acceleration reading
 )
 {
     const struct Acceleration *v1 = recordedValue;
@@ -490,15 +677,25 @@ static bool AccelerometerThreshold
 
     double deltaAcc = sqrt(pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2));
 
-    // TODO: I think that the acceleration is in m/s^2, so 4.9 is half of a G.
+    // The acceleration is in m/s^2, so 4.9 is half of a G.
     return fabs(deltaAcc) > 4.9;
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Records an acceleration at the given time into the given record
+ *
+ * @return
+ *      - LE_OK on success
+ *      - LE_OVERFLOW if the record is full
+ *      - LE_FAULT non-specific failure
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t AccelerometerRecord
 (
-    le_avdata_RecordRef_t ref,
-    uint64_t timestamp,
-    void *value
+    le_avdata_RecordRef_t ref, ///< Record reference to record the value into
+    uint64_t timestamp,        ///< Timestamp to associate with the value
+    void *value                ///< The struct Acceleration value to record
 )
 {
     // The '_' is a placeholder that will be replaced
@@ -506,7 +703,7 @@ static le_result_t AccelerometerRecord
     struct Acceleration *v = value;
     le_result_t result = LE_FAULT;
 
-    path[sizeof(path) - 1] = 'X';
+    path[sizeof(path) - 2] = 'X';
     result = le_avdata_RecordFloat(RecordRef, path, v->x, timestamp);
     if (result != LE_OK)
     {
@@ -514,7 +711,7 @@ static le_result_t AccelerometerRecord
         goto done;
     }
 
-    path[sizeof(path) - 1] = 'Y';
+    path[sizeof(path) - 2] = 'Y';
     result = le_avdata_RecordFloat(RecordRef, path, v->y, timestamp);
     if (result != LE_OK)
     {
@@ -522,7 +719,7 @@ static le_result_t AccelerometerRecord
         goto done;
     }
 
-    path[sizeof(path) - 1] = 'Z';
+    path[sizeof(path) - 2] = 'Z';
     result = le_avdata_RecordFloat(RecordRef, path, v->z, timestamp);
     if (result != LE_OK)
     {
@@ -534,11 +731,15 @@ done:
     return result;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Copies a struct Acceleration between two void pointers
+ */
+//--------------------------------------------------------------------------------------------------
 static void AccelerometerCopyValue
 (
-    void *dest,
-    const void *src
+    void *dest,      ///< copy destination
+    const void *src  ///< copy source
 )
 {
     struct Acceleration *d = dest;
@@ -548,41 +749,65 @@ static void AccelerometerCopyValue
     d->z = s->z;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Read the angular velocity from the accelerometer
+ *
+ * @return
+ *      LE_OK on success.  Any other return value is a failure.
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t GyroRead
 (
-    void *value
+    void *value  ///< Pointer to a struct Gyro to store the reading in
 )
 {
     struct Gyro *v = value;
     return mangOH_ReadGyro(&v->x, &v->y, &v->z);
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks to see if the angular velocity has changed sufficiently to warrant recording of a new
+ * reading.
+ *
+ * @return
+ *      true if the threshold for recording has been exceeded
+ */
+//--------------------------------------------------------------------------------------------------
 static bool GyroThreshold
 (
-    const void *recordedValue,
-    const void *readValue
+    const void *recordedValue, ///< Last recorded angular velocity
+    const void *readValue      ///< Most recent angular velocity
 )
 {
-    const struct Acceleration *v1 = recordedValue;
-    const struct Acceleration *v2 = readValue;
+    const struct Gyro *v1 = recordedValue;
+    const struct Gyro *v2 = readValue;
 
     double deltaX = v1->x - v2->x;
     double deltaY = v1->y - v2->y;
     double deltaZ = v1->z - v2->z;
 
-    double deltaAcc = sqrt(pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2));
+    double deltaAngVel = sqrt(pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2));
 
-    // TODO: What is the unit of the gyro? degrees per second? revolutions per second? revolutions
-    // per minute? radians per second? other?
-    return fabs(deltaAcc) > 10.0;
+    return fabs(deltaAngVel) > (M_PI / 2.0);
 }
 
+//--------------------------------------------------------------------------------------------------
+/**
+ * Records an angular velocity at the given time into the given record
+ *
+ * @return
+ *      - LE_OK on success
+ *      - LE_OVERFLOW if the record is full
+ *      - LE_FAULT non-specific failure
+ */
+//--------------------------------------------------------------------------------------------------
 static le_result_t GyroRecord
 (
-    le_avdata_RecordRef_t ref,
-    uint64_t timestamp,
-    void *value
+    le_avdata_RecordRef_t ref, ///< Record reference to record the value into
+    uint64_t timestamp,        ///< Timestamp to associate with the value
+    void *value                ///< The struct Gyro value to record
 )
 {
     // The '_' is a placeholder that will be replaced
@@ -590,7 +815,7 @@ static le_result_t GyroRecord
     struct Gyro *v = value;
     le_result_t result = LE_FAULT;
 
-    path[sizeof(path) - 1] = 'X';
+    path[sizeof(path) - 2] = 'X';
     result = le_avdata_RecordFloat(RecordRef, path, v->x, timestamp);
     if (result != LE_OK)
     {
@@ -598,7 +823,7 @@ static le_result_t GyroRecord
         goto done;
     }
 
-    path[sizeof(path) - 1] = 'Y';
+    path[sizeof(path) - 2] = 'Y';
     result = le_avdata_RecordFloat(RecordRef, path, v->y, timestamp);
     if (result != LE_OK)
     {
@@ -606,7 +831,7 @@ static le_result_t GyroRecord
         goto done;
     }
 
-    path[sizeof(path) - 1] = 'Z';
+    path[sizeof(path) - 2] = 'Z';
     result = le_avdata_RecordFloat(RecordRef, path, v->z, timestamp);
     if (result != LE_OK)
     {
@@ -618,11 +843,15 @@ done:
     return result;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Copies a struct Gyro between two void pointers
+ */
+//--------------------------------------------------------------------------------------------------
 static void GyroCopyValue
 (
-    void *dest,
-    const void *src
+    void *dest,      ///< copy destination
+    const void *src  ///< copy source
 )
 {
     struct Gyro *d = dest;
@@ -632,7 +861,14 @@ static void GyroCopyValue
     d->z = s->z;
 }
 
-
+//--------------------------------------------------------------------------------------------------
+/**
+ * Handle changes in the AirVantage session state
+ *
+ * When the session is started the timer to sample the sensors is started and when the session is
+ * stopped so is the timer.
+ */
+//--------------------------------------------------------------------------------------------------
 static void AvSessionStateHandler
 (
     le_avdata_SessionState_t state,
@@ -642,8 +878,20 @@ static void AvSessionStateHandler
     switch (state)
     {
         case LE_AVDATA_SESSION_STARTED:
-            LE_ASSERT_OK(le_timer_Start(SampleTimer));
+        {
+            // TODO: checking for LE_BUSY is a temporary workaround for the session state problem
+            // described below.
+            le_result_t status = le_timer_Start(SampleTimer);
+            if (status == LE_BUSY)
+            {
+                LE_INFO("Received session started when timer was already running");
+            }
+            else
+            {
+                LE_ASSERT_OK(status);
+            }
             break;
+        }
 
         case LE_AVDATA_SESSION_STOPPED:
             LE_ASSERT_OK(le_timer_Stop(SampleTimer));
@@ -657,17 +905,22 @@ static void AvSessionStateHandler
 
 COMPONENT_INIT
 {
-    HandlerRef = le_avdata_AddSessionStateHandler(AvSessionStateHandler, NULL);
-    AvSession = le_avdata_RequestSession();
-    // TODO: Ther eis an issue with le_avdata_RequestSession() where it returns NULL if the control
-    // app has already established a session. For now we just ignore the return value and hope that
-    // a session has been requested.
-    //LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
-    LE_INFO("AvSession=0x%p", AvSession);
     RecordRef = le_avdata_CreateRecord();
 
     SampleTimer = le_timer_Create("Sensor Read");
     LE_ASSERT_OK(le_timer_SetMsInterval(SampleTimer, DelayBetweenReadings * 1000));
     LE_ASSERT_OK(le_timer_SetRepeat(SampleTimer, 0));
     LE_ASSERT_OK(le_timer_SetHandler(SampleTimer, SampleTimerHandler));
+
+    HandlerRef = le_avdata_AddSessionStateHandler(AvSessionStateHandler, NULL);
+    AvSession = le_avdata_RequestSession();
+    // TODO: There is an issue with le_avdata_RequestSession() where it returns NULL if the control
+    // app has already established a session. For now we just ignore the return value and hope that
+    // a session has been requested.
+    //LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
+
+    // TODO: There is another problem where a session started event will not be sent to the client
+    // if a session is already established. As a workaround for this, we explicitly call the
+    // AvSessionStateHandler and tell it that a session is established.
+    AvSessionStateHandler(LE_AVDATA_SESSION_STARTED, NULL);
 }

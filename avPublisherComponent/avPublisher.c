@@ -173,7 +173,6 @@ static struct
     struct SensorReadings read;      // sensor values most recently read
 } SensorData;
 
-/* static bool ReadLightOnly; */
 
 //--------------------------------------------------------------------------------------------------
 /**

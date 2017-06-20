@@ -686,8 +686,8 @@ static bool AccelerometerThreshold
 
     double deltaAcc = sqrt(pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2));
 
-    // The acceleration is in m/s^2, so 4.9 is half of a G.
-    return fabs(deltaAcc) > 4.9;
+    // The acceleration is in m/s^2, so 9.8 is one G.
+    return fabs(deltaAcc) > 1.0;
 }
 
 //--------------------------------------------------------------------------------------------------

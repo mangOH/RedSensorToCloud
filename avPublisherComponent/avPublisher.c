@@ -89,7 +89,9 @@ struct Gyro
 //--------------------------------------------------------------------------------------------------
 struct SensorReadings
 {
+#ifndef LIGHT_SENSOR_DISABLE
     int32_t lightLevel;
+#endif // LIGHT_SENSOR_DISABLE
     double pressure;
     double temperature;
     struct Acceleration acc;

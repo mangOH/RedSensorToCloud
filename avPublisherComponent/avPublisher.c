@@ -925,13 +925,5 @@ COMPONENT_INIT
 
     HandlerRef = le_avdata_AddSessionStateHandler(AvSessionStateHandler, NULL);
     AvSession = le_avdata_RequestSession();
-    // TODO: There is an issue with le_avdata_RequestSession() where it returns NULL if the control
-    // app has already established a session. For now we just ignore the return value and hope that
-    // a session has been requested.
-    //LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
-
-    // TODO: There is another problem where a session started event will not be sent to the client
-    // if a session is already established. As a workaround for this, we explicitly call the
-    // AvSessionStateHandler and tell it that a session is established.
-    AvSessionStateHandler(LE_AVDATA_SESSION_STARTED, NULL);
+    LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
 }

@@ -5,9 +5,7 @@
 #include "accelerometer.h"
 
 
-// Disable the light sensor for now because there seems to be an intermittent bug that locks up the
-// I2C bus.
-#define LIGHT_SENSOR_DISABLE
+#define LIGHT_SENSOR_ENABLE
 
 //--------------------------------------------------------------------------------------------------
 /*
@@ -89,9 +87,9 @@ struct Gyro
 //--------------------------------------------------------------------------------------------------
 struct SensorReadings
 {
-#ifndef LIGHT_SENSOR_DISABLE
+#ifdef LIGHT_SENSOR_ENABLE
     int32_t lightLevel;
-#endif // LIGHT_SENSOR_DISABLE
+#endif // LIGHT_SENSOR_ENABLE
     double pressure;
     double temperature;
     struct Acceleration acc;
@@ -107,12 +105,12 @@ static void PushCallbackHandler(le_avdata_PushStatus_t status, void* context);
 static uint64_t GetCurrentTimestamp(void);
 static void SampleTimerHandler(le_timer_Ref_t timer);
 
-#ifndef LIGHT_SENSOR_DISABLE
+#ifdef LIGHT_SENSOR_ENABLE
 static le_result_t LightSensorRead(void *value);
 static bool LightSensorThreshold(const void *recordedValue, const void* readValue);
 static le_result_t LightSensorRecord(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
 static void LightSensorCopyValue(void *dest, const void *src);
-#endif // LIGHT_SENSOR_DISABLE
+#endif // LIGHT_SENSOR_ENABLE
 
 static le_result_t PressureSensorRead(void *value);
 static bool PressureSensorThreshold(const void *recordedValue, const void* readValue);
@@ -189,7 +187,7 @@ static struct
 //--------------------------------------------------------------------------------------------------
 struct Item Items[] =
 {
-#ifndef LIGHT_SENSOR_DISABLE
+#ifdef LIGHT_SENSOR_ENABLE
     {
         .name = "light level",
         .read = LightSensorRead,
@@ -201,7 +199,7 @@ struct Item Items[] =
         .lastTimeRead = 0,
         .lastTimeRecorded = 0,
     },
-#endif // LIGHT_SENSOR_DISABLE
+#endif // LIGHT_SENSOR_ENABLE
     {
         .name = "pressure",
         .read = PressureSensorRead,
@@ -402,7 +400,7 @@ static void SampleTimerHandler
     }
 }
 
-#ifndef LIGHT_SENSOR_DISABLE
+#ifdef LIGHT_SENSOR_ENABLE
 //--------------------------------------------------------------------------------------------------
 /**
  * Read the light sensor
@@ -483,7 +481,7 @@ static void LightSensorCopyValue
     const int32_t *s = src;
     *d = *s;
 }
-#endif // LIGHT_SENSOR_DISABLE
+#endif // LIGHT_SENSOR_ENABLE
 
 //--------------------------------------------------------------------------------------------------
 /**

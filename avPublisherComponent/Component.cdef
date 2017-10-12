@@ -2,6 +2,7 @@ cflags:
 {
     -std=c99
     -I${CURDIR}/../sensorsComponent
+    // -DGPS_ENABLE
 }
 
 requires:

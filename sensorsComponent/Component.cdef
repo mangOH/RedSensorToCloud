@@ -1,6 +1,7 @@
 cflags:
 {
     -std=c99
+    // -DGPS_ENABLE
 }
 
 requires:
@@ -8,6 +9,8 @@ requires:
     api:
     {
         le_adc.api
+        positioning/le_posCtrl.api
+        positioning/le_pos.api
     }
 
     file:
@@ -32,4 +35,5 @@ sources:
     lightSensor.c
     pressureSensor.c
     accelerometer.c
+    gps.c
 }

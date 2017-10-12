@@ -23,5 +23,7 @@ processes:
 bindings:
 {
     redSensorToCloud.sensorsComponent.le_adc -> modemService.le_adc
+    redSensorToCloud.sensorsComponent.le_pos -> positioningService.le_pos
+    redSensorToCloud.sensorsComponent.le_posCtrl -> positioningService.le_posCtrl
     redSensorToCloud.avPublisherComponent.le_avdata -> avcService.le_avdata
 }

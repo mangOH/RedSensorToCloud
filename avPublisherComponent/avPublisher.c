@@ -3,6 +3,7 @@
 #include "lightSensor.h"
 #include "pressureSensor.h"
 #include "accelerometer.h"
+#include "gps.h"
 
 
 #define LIGHT_SENSOR_ENABLE
@@ -80,6 +81,15 @@ struct Gyro
     double z;
 };
 
+struct Location3d
+{
+    double latitude;
+    double longitude;
+    double hAccuracy;
+    double altitude;
+    double vAccuracy;
+};
+
 //--------------------------------------------------------------------------------------------------
 /**
  * A data structure that stores a single reading from all of the sensors.
@@ -94,6 +104,9 @@ struct SensorReadings
     double temperature;
     struct Acceleration acc;
     struct Gyro gyro;
+#ifdef GPS_ENABLE
+    struct Location3d location;
+#endif // GPS_ENABLE
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -131,6 +144,13 @@ static le_result_t GyroRead(void *value);
 static bool GyroThreshold(const void *recordedValue, const void* readValue);
 static le_result_t GyroRecord(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
 static void GyroCopyValue(void *dest, const void *src);
+
+#ifdef GPS_ENABLE
+static le_result_t GpsRead(void *value);
+static bool GpsThreshold(const void *recordedValue, const void* readValue);
+static le_result_t GpsRecord(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
+static void GpsCopyValue(void *dest, const void *src);
+#endif // GPS_ENABLE
 
 static void AvSessionStateHandler (le_avdata_SessionState_t state, void *context);
 
@@ -244,6 +264,19 @@ struct Item Items[] =
         .lastTimeRead = 0,
         .lastTimeRecorded = 0,
     },
+#ifdef GPS_ENABLE
+    {
+        .name = "gps",
+        .read = GpsRead,
+        .thresholdCheck = GpsThreshold,
+        .record = GpsRecord,
+        .copyValue = GpsCopyValue,
+        .lastValueRead = &SensorData.read.location,
+        .lastValueRecorded = &SensorData.recorded.location,
+        .lastTimeRead = 0,
+        .lastTimeRecorded = 0,
+    },
+#endif // GPS_ENABLE
 };
 
 
@@ -869,6 +902,143 @@ static void GyroCopyValue
     d->y = s->y;
     d->z = s->z;
 }
+
+#ifdef GPS_ENABLE
+//--------------------------------------------------------------------------------------------------
+/**
+ * Read the GPS location
+ *
+ * @return
+ *      LE_OK on success.  Any other return value is a failure.
+ */
+//--------------------------------------------------------------------------------------------------
+static le_result_t GpsRead
+(
+    void *value  ///< Pointer to a struct Location3d to store the reading in
+)
+{
+    struct Location3d *v = value;
+    return mangOH_ReadGps(&v->latitude, &v->longitude, &v->hAccuracy, &v->altitude, &v->vAccuracy);
+}
+
+//--------------------------------------------------------------------------------------------------
+/**
+ * Checks to see if the location has changed sufficiently to warrant recording of a new reading.
+ *
+ * @return
+ *      true if the threshold for recording has been exceeded
+ */
+//--------------------------------------------------------------------------------------------------
+static bool GpsThreshold
+(
+    const void *recordedValue, ///< Last recorded angular velocity
+    const void *readValue      ///< Most recent angular velocity
+)
+{
+    const struct Location3d *v1 = recordedValue;
+    const struct Location3d *v2 = readValue;
+
+    double deltaLat = v2->latitude - v1->latitude;
+    double deltaLon = v2->longitude - v1->longitude;
+    /*
+    double deltaHAccuracy = v2->hAccuracy - v1->hAccuracy;
+    double deltaAltitude = v2->altitude - v1->altitude;
+    double deltaVAccuracy = v2->vAccuracy - v1->vAccuracy;
+    */
+
+    // TODO: It makes sense to publish a new value if the possible position of the device has
+    // changed by certain number of meters. Calculating the number of meters between two latitudes
+    // or two longitudes requires complicated math.  Just doing something dumb for now.
+
+    return fabs(deltaLat) + fabs(deltaLon) > 0.01;
+}
+
+//--------------------------------------------------------------------------------------------------
+/**
+ * Records a GPS reading at the given time into the given record
+ *
+ * @return
+ *      - LE_OK on success
+ *      - LE_OVERFLOW if the record is full
+ *      - LE_FAULT non-specific failure
+ */
+//--------------------------------------------------------------------------------------------------
+static le_result_t GpsRecord
+(
+    le_avdata_RecordRef_t ref, ///< Record reference to record the value into
+    uint64_t timestamp,        ///< Timestamp to associate with the value
+    void *value                ///< The struct Gps value to record
+)
+{
+    char path[128] = "Sensors/Gps/";
+    int end = strnlen(path, sizeof(path));
+    struct Location3d *v = value;
+    le_result_t result = LE_FAULT;
+
+    strcpy(&path[end], "Latitude");
+    result = le_avdata_RecordFloat(RecordRef, path, v->latitude, timestamp);
+    if (result != LE_OK)
+    {
+        LE_ERROR("Couldn't record gps latitude reading - %s", LE_RESULT_TXT(result));
+        goto done;
+    }
+
+    strcpy(&path[end], "Longitude");
+    result = le_avdata_RecordFloat(RecordRef, path, v->longitude, timestamp);
+    if (result != LE_OK)
+    {
+        LE_ERROR("Couldn't record gps longitude reading - %s", LE_RESULT_TXT(result));
+        goto done;
+    }
+
+    strcpy(&path[end], "HorizontalAccuracy");
+    result = le_avdata_RecordFloat(RecordRef, path, v->hAccuracy, timestamp);
+    if (result != LE_OK)
+    {
+        LE_ERROR("Couldn't record gps horizontal accuracy reading - %s", LE_RESULT_TXT(result));
+        goto done;
+    }
+
+    strcpy(&path[end], "Altitude");
+    result = le_avdata_RecordFloat(RecordRef, path, v->altitude, timestamp);
+    if (result != LE_OK)
+    {
+        LE_ERROR("Couldn't record gps altitude reading - %s", LE_RESULT_TXT(result));
+        goto done;
+    }
+
+    strcpy(&path[end], "VerticalAccuracy");
+    result = le_avdata_RecordFloat(RecordRef, path, v->vAccuracy, timestamp);
+    if (result != LE_OK)
+    {
+        LE_ERROR("Couldn't record gps vertical accuracy reading - %s", LE_RESULT_TXT(result));
+        goto done;
+    }
+
+done:
+    return result;
+}
+
+//--------------------------------------------------------------------------------------------------
+/**
+ * Copies a struct Location3d between two void pointers
+ */
+//--------------------------------------------------------------------------------------------------
+static void GpsCopyValue
+(
+    void *dest,      ///< copy destination
+    const void *src  ///< copy source
+)
+{
+    struct Location3d *d = dest;
+    const struct Location3d *s = src;
+    d->latitude = s->latitude;
+    d->longitude = s->longitude;
+    d->hAccuracy = s->hAccuracy;
+    d->altitude = s->altitude;
+    d->vAccuracy = s->vAccuracy;
+}
+#endif // GPS_ENABLE
 
 //--------------------------------------------------------------------------------------------------
 /**

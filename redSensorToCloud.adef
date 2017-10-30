@@ -4,7 +4,7 @@ version: 0.1
 
 executables:
 {
-    redSensorToCloud = ( avPublisherComponent sensorsComponent)
+    redSensorToCloud = (avPublisherComponent sensorsComponent)
 }
 
 processes:
@@ -23,7 +23,11 @@ processes:
 bindings:
 {
     redSensorToCloud.sensorsComponent.le_adc -> modemService.le_adc
+    // Commented out because binding to the positioning services seems to cause reliability
+    // issues sometimes. This issue needs to be investigated.
+    /*
     redSensorToCloud.sensorsComponent.le_pos -> positioningService.le_pos
     redSensorToCloud.sensorsComponent.le_posCtrl -> positioningService.le_posCtrl
+    */
     redSensorToCloud.avPublisherComponent.le_avdata -> avcService.le_avdata
 }

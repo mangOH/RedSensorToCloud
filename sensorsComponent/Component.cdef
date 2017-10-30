@@ -9,8 +9,12 @@ requires:
     api:
     {
         le_adc.api
+        // Commented out because binding to the positioning services seems to cause reliability
+        // issues sometimes. This issue needs to be investigated.
+        /*
         positioning/le_posCtrl.api
         positioning/le_pos.api
+        */
     }
 
     file:
@@ -35,5 +39,5 @@ sources:
     lightSensor.c
     pressureSensor.c
     accelerometer.c
-    gps.c
+    // gps.c
 }

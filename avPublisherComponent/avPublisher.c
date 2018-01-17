@@ -1073,11 +1073,17 @@ static void AvSessionStateHandler
         }
 
         case LE_AVDATA_SESSION_STOPPED:
-            LE_ASSERT_OK(le_timer_Stop(SampleTimer));
+        {
+            le_result_t status = le_timer_Stop(SampleTimer);
+            if (status != LE_OK)
+            {
+                LE_DEBUG("Record push timer not running");
+            }
+
             AvSession = le_avdata_RequestSession();
             LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
             break;
-
+        }
         default:
             LE_ERROR("Unsupported AV session state %d", state);
             break;

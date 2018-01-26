@@ -488,7 +488,7 @@ static le_result_t LightSensorRecord
     void *value                ///< The int32_t value to record
 )
 {
-    const char *path = "Sensors/Light/Level";
+    const char *path = "/Sensors/Light/Level";
     int32_t *v = value;
     le_result_t result = le_avdata_RecordInt(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -570,7 +570,7 @@ static le_result_t PressureSensorRecord
     void *value                ///< The double value to record
 )
 {
-    const char *path = "Sensors/Pressure/Pressure";
+    const char *path = "/Sensors/Pressure/Pressure";
     double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -652,7 +652,7 @@ static le_result_t TemperatureSensorRecord
     void *value                ///< The double value to record
 )
 {
-    const char *path = "Sensors/Pressure/Temperature";
+    const char *path = "/Sensors/Pressure/Temperature";
     double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -741,7 +741,7 @@ static le_result_t AccelerometerRecord
 )
 {
     // The '_' is a placeholder that will be replaced
-    char path[] = "Sensors/Accelerometer/Acceleration/_";
+    char path[] = "/Sensors/Accelerometer/Acceleration/_";
     struct Acceleration *v = value;
     le_result_t result = LE_FAULT;
 
@@ -853,7 +853,7 @@ static le_result_t GyroRecord
 )
 {
     // The '_' is a placeholder that will be replaced
-    char path[] = "Sensors/Accelerometer/Gyro/_";
+    char path[] = "/Sensors/Accelerometer/Gyro/_";
     struct Gyro *v = value;
     le_result_t result = LE_FAULT;
 
@@ -970,7 +970,7 @@ static le_result_t GpsRecord
     void *value                ///< The struct Gps value to record
 )
 {
-    char path[128] = "Sensors/Gps/";
+    char path[128] = "/Sensors/Gps/";
     int end = strnlen(path, sizeof(path));
     struct Location3d *v = value;
     le_result_t result = LE_FAULT;

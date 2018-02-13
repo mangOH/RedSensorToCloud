@@ -1258,7 +1258,7 @@ COMPONENT_INIT
 
     SampleTimer = le_timer_Create("Sensor Read");
     LE_ASSERT_OK(le_timer_SetMsInterval(SampleTimer, DelayBetweenReadings * 1000));
-    LE_ASSERT_OK(le_timer_SetRepeat(SampleTimer, 1));
+    LE_ASSERT_OK(le_timer_SetRepeat(SampleTimer, 0));
     LE_ASSERT_OK(le_timer_SetHandler(SampleTimer, SampleTimerHandler));
 
     HandlerRef = le_avdata_AddSessionStateHandler(AvSessionStateHandler, NULL);

@@ -10,6 +10,19 @@
 
 //--------------------------------------------------------------------------------------------------
 /*
+ * command definitions
+ */
+//--------------------------------------------------------------------------------------------------
+
+// command to set value
+#define LED_CMD_SET_LED_BLINK_INTERVAL_RES     "/SetLedBlinkInterval"
+#define LED_CMD_LED_BLINK_INTERVAL_RES         "LedBlinkInterval"
+
+// command to switch LED
+#define LED_CMD_SWITCH_RES              "/SwitchLED"
+
+//--------------------------------------------------------------------------------------------------
+/*
  * type definitions
  */
 //--------------------------------------------------------------------------------------------------
@@ -117,6 +130,7 @@ struct SensorReadings
 static void PushCallbackHandler(le_avdata_PushStatus_t status, void* context);
 static uint64_t GetCurrentTimestamp(void);
 static void SampleTimerHandler(le_timer_Ref_t timer);
+static void LedStateTimerHandler(le_timer_Ref_t timer);
 
 #ifdef LIGHT_SENSOR_ENABLE
 static le_result_t LightSensorRead(void *value);
@@ -161,6 +175,11 @@ static void AvSessionStateHandler (le_avdata_SessionState_t state, void *context
  * variable definitions
  */
 //--------------------------------------------------------------------------------------------------
+
+// Current LED status
+static bool LedOn;
+static int LedBlinkDuration = 0;
+static le_timer_Ref_t LedStateTimer;
 
 // Wait time between each round of sensor readings.
 static const int DelayBetweenReadings = 1;
@@ -488,7 +507,7 @@ static le_result_t LightSensorRecord
     void *value                ///< The int32_t value to record
 )
 {
-    const char *path = "Sensors/Light/Level";
+    const char *path = "Sensors.Light.Level";
     int32_t *v = value;
     le_result_t result = le_avdata_RecordInt(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -570,7 +589,7 @@ static le_result_t PressureSensorRecord
     void *value                ///< The double value to record
 )
 {
-    const char *path = "Sensors/Pressure/Pressure";
+    const char *path = "Sensors.Pressure.Pressure";
     double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -652,7 +671,7 @@ static le_result_t TemperatureSensorRecord
     void *value                ///< The double value to record
 )
 {
-    const char *path = "Sensors/Pressure/Temperature";
+    const char *path = "Sensors.Pressure.Temperature";
     double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -741,7 +760,7 @@ static le_result_t AccelerometerRecord
 )
 {
     // The '_' is a placeholder that will be replaced
-    char path[] = "Sensors/Accelerometer/Acceleration/_";
+    char path[] = "Sensors.Accelerometer.Acceleration._";
     struct Acceleration *v = value;
     le_result_t result = LE_FAULT;
 
@@ -853,7 +872,7 @@ static le_result_t GyroRecord
 )
 {
     // The '_' is a placeholder that will be replaced
-    char path[] = "Sensors/Accelerometer/Gyro/_";
+    char path[] = "Sensors.Accelerometer.Gyro._";
     struct Gyro *v = value;
     le_result_t result = LE_FAULT;
 
@@ -970,12 +989,12 @@ static le_result_t GpsRecord
     void *value                ///< The struct Gps value to record
 )
 {
-    char path[128] = "Sensors/Gps/";
+    char path[128] = "lwm2m.6.0.";
     int end = strnlen(path, sizeof(path));
     struct Location3d *v = value;
     le_result_t result = LE_FAULT;
 
-    strcpy(&path[end], "Latitude");
+    strcpy(&path[end], "0");
     result = le_avdata_RecordFloat(RecordRef, path, v->latitude, timestamp);
     if (result != LE_OK)
     {
@@ -983,7 +1002,7 @@ static le_result_t GpsRecord
         goto done;
     }
 
-    strcpy(&path[end], "Longitude");
+    strcpy(&path[end], "1");
     result = le_avdata_RecordFloat(RecordRef, path, v->longitude, timestamp);
     if (result != LE_OK)
     {
@@ -991,7 +1010,7 @@ static le_result_t GpsRecord
         goto done;
     }
 
-    strcpy(&path[end], "HorizontalAccuracy");
+    strcpy(&path[end], "3");
     result = le_avdata_RecordFloat(RecordRef, path, v->hAccuracy, timestamp);
     if (result != LE_OK)
     {
@@ -999,7 +1018,7 @@ static le_result_t GpsRecord
         goto done;
     }
 
-    strcpy(&path[end], "Altitude");
+    strcpy(&path[end], "2");
     result = le_avdata_RecordFloat(RecordRef, path, v->altitude, timestamp);
     if (result != LE_OK)
     {
@@ -1007,7 +1026,7 @@ static le_result_t GpsRecord
         goto done;
     }
 
-    strcpy(&path[end], "VerticalAccuracy");
+    strcpy(&path[end], "Sensors.Gps.VerticalAccuracy");
     result = le_avdata_RecordFloat(RecordRef, path, v->vAccuracy, timestamp);
     if (result != LE_OK)
     {
@@ -1040,6 +1059,131 @@ static void GpsCopyValue
 }
 #endif // GPS_ENABLE
 
+//-------------------------------------------------------------------------------------------------
+/**
+ * LED state timer handler.
+ */
+//-------------------------------------------------------------------------------------------------
+static void LedStateTimerHandler
+(
+    le_timer_Ref_t timer  ///< Led state timer
+)
+{
+    if (!LedOn)
+    {
+        LE_DEBUG("turn on LED");
+        ma_led_TurnOn();
+        LedOn = true;
+    }
+    else
+    {
+        LE_DEBUG("turn off LED");
+        ma_led_TurnOff();
+        LedOn = false;
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
+/**
+ * Command data handler.
+ * This function is returned whenever AirVantage performs an execute on the set value command
+ */
+//-------------------------------------------------------------------------------------------------
+static void SetLedBlinkIntervalCmd
+(
+    const char* path,
+    le_avdata_AccessType_t accessType,
+    le_avdata_ArgumentListRef_t argumentList,
+    void* contextPtr
+)
+{
+    char val[32];
+    le_result_t result = LE_OK;
+    int NewLedBlinkDuration;
+
+    LE_INFO("Set value");
+
+    result = le_avdata_GetStringArg(argumentList, LED_CMD_LED_BLINK_INTERVAL_RES, val, sizeof(val));
+    if (result != LE_OK)
+    {
+        LE_ERROR("le_avdata_GetStringArg('%s') failed(%d)", LED_CMD_LED_BLINK_INTERVAL_RES, result);
+        goto cleanup;
+    }
+
+    LE_INFO("value('%s')", val);
+    NewLedBlinkDuration = atoi(val);
+    if (NewLedBlinkDuration >= 0)
+    {
+        LedBlinkDuration = NewLedBlinkDuration;
+        if (LedBlinkDuration > 0)
+        {
+            result = le_timer_Stop(LedStateTimer);
+            if (result != LE_OK)
+            {
+                LE_DEBUG("LED timer not running");
+            }
+
+            LE_ASSERT_OK(le_timer_SetMsInterval(LedStateTimer, LedBlinkDuration * 1000));
+
+            result = le_timer_Start(LedStateTimer);
+            if (result != LE_BUSY)
+            {
+                LE_ASSERT_OK(result);
+            }
+        }
+        else
+        {
+            LE_ASSERT_OK(le_timer_SetRepeat(LedStateTimer, 0));
+            result = le_timer_Stop(LedStateTimer);
+            if (result != LE_OK)
+            {
+                LE_DEBUG("LED timer not running");
+            }
+        }
+    }
+    else
+    {
+        LE_WARN("Invalid max interval between publish (%d >= 0)", NewLedBlinkDuration);
+        result = LE_OUT_OF_RANGE;
+        goto cleanup;
+    }
+
+cleanup:
+    le_avdata_ReplyExecResult(argumentList, result);
+}
+
+//-------------------------------------------------------------------------------------------------
+/**
+ * Command data handler.
+ * This function is returned whenever AirVantage performs an execute on the switch LED command
+ */
+//-------------------------------------------------------------------------------------------------
+static void SwitchLEDCmd
+(
+    const char* path,
+    le_avdata_AccessType_t accessType,
+    le_avdata_ArgumentListRef_t argumentList,
+    void* contextPtr
+)
+{
+    LE_INFO("Switch LED");
+
+    if (!LedOn)
+    {
+        LE_DEBUG("turn on LED");
+        ma_led_TurnOn();
+        LedOn = true;
+    }
+    else
+    {
+        LE_DEBUG("turn off LED");
+        ma_led_TurnOff();
+        LedOn = false;
+    }
+
+    le_avdata_ReplyExecResult(argumentList, LE_OK);
+}
+
 //--------------------------------------------------------------------------------------------------
 /**
  * Handle changes in the AirVantage session state
@@ -1060,6 +1204,7 @@ static void AvSessionStateHandler
         {
             // TODO: checking for LE_BUSY is a temporary workaround for the session state problem
             // described below.
+            LE_DEBUG("Session Started");
             le_result_t status = le_timer_Start(SampleTimer);
             if (status == LE_BUSY)
             {
@@ -1074,6 +1219,7 @@ static void AvSessionStateHandler
 
         case LE_AVDATA_SESSION_STOPPED:
         {
+            LE_DEBUG("Session Stopped");
             le_result_t status = le_timer_Stop(SampleTimer);
             if (status != LE_OK)
             {
@@ -1084,6 +1230,7 @@ static void AvSessionStateHandler
             LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
             break;
         }
+
         default:
             LE_ERROR("Unsupported AV session state %d", state);
             break;
@@ -1092,11 +1239,23 @@ static void AvSessionStateHandler
 
 COMPONENT_INIT
 {
+    le_avdata_CreateResource(LED_CMD_LED_BLINK_INTERVAL_RES, LE_AVDATA_ACCESS_SETTING);
+    le_avdata_CreateResource(LED_CMD_SET_LED_BLINK_INTERVAL_RES, LE_AVDATA_ACCESS_COMMAND);
+    le_avdata_AddResourceEventHandler(LED_CMD_SET_LED_BLINK_INTERVAL_RES, SetLedBlinkIntervalCmd, NULL);
+
+    LedStateTimer = le_timer_Create("Led State");
+    LE_ASSERT_OK(le_timer_SetRepeat(LedStateTimer, 0));
+    LE_ASSERT_OK(le_timer_SetHandler(LedStateTimer, LedStateTimerHandler));
+
+    le_avdata_CreateResource(LED_CMD_SWITCH_RES, LE_AVDATA_ACCESS_COMMAND);
+    le_avdata_AddResourceEventHandler(LED_CMD_SWITCH_RES, SwitchLEDCmd, NULL);
+    LedOn = ma_led_GetLedStatus();
+
     RecordRef = le_avdata_CreateRecord();
 
     SampleTimer = le_timer_Create("Sensor Read");
     LE_ASSERT_OK(le_timer_SetMsInterval(SampleTimer, DelayBetweenReadings * 1000));
-    LE_ASSERT_OK(le_timer_SetRepeat(SampleTimer, 0));
+    LE_ASSERT_OK(le_timer_SetRepeat(SampleTimer, 1));
     LE_ASSERT_OK(le_timer_SetHandler(SampleTimer, SampleTimerHandler));
 
     HandlerRef = le_avdata_AddSessionStateHandler(AvSessionStateHandler, NULL);

@@ -30,4 +30,5 @@ bindings:
     redSensorToCloud.sensorsComponent.le_posCtrl -> positioningService.le_posCtrl
     */
     redSensorToCloud.avPublisherComponent.le_avdata -> avcService.le_avdata
+    redSensorToCloud.avPublisherComponent.ma_led -> ledService.ma_led
 }

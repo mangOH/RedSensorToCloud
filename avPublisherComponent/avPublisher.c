@@ -508,6 +508,7 @@ static le_result_t LightSensorRecord
 )
 {
     const char *path = "Sensors.Light.Level";
+
     int32_t *v = value;
     le_result_t result = le_avdata_RecordInt(RecordRef, path, *v, timestamp);
     if (result != LE_OK)
@@ -589,6 +590,7 @@ static le_result_t PressureSensorRecord
     void *value                ///< The double value to record
 )
 {
+
     const char *path = "Sensors.Pressure.Pressure";
     double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
@@ -672,6 +674,7 @@ static le_result_t TemperatureSensorRecord
 )
 {
     const char *path = "Sensors.Pressure.Temperature";
+
     double *v = value;
     le_result_t result = le_avdata_RecordFloat(RecordRef, path, *v, timestamp);
     if (result != LE_OK)

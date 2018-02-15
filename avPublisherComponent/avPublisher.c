@@ -1229,8 +1229,6 @@ static void AvSessionStateHandler
                 LE_DEBUG("Record push timer not running");
             }
 
-            AvSession = le_avdata_RequestSession();
-            LE_FATAL_IF(AvSession == NULL, "Failed to request avdata session");
             break;
         }
 

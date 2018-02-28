@@ -3,12 +3,12 @@
     xmlns:app="http://www.sierrawireless.com/airvantage/application/1.0"
     type="mangoh.io.sensortocloud.app"
     name="RedSensorToCloud"
-    revision="1.6">
+    revision="2.0">
   <application-manager use="LWM2M_SW"/>
   <capabilities>
       <data>
       <encoding type="LWM2M">
-        <asset default-label="MangOH Red" id="Asset">
+        <asset default-label="MangOH Red" id="MangOH">
             <node path="Sensors" default-label="Sensors">
                 <node path="Accelerometer" default-label="Accelerometer">
                     <node path="Acceleration" default-label="Acceleration">
@@ -33,13 +33,10 @@
                   <variable default-label="Temperature" path="Temperature" type="double" />
                 </node>
             </node>
-            <node path="Settings" default-label="Settings">
-                <variable default-label="Frequency" path="Frequency" type="double" />
-            </node>
             <node path="Commands" default-label="Commands">          
                 <command default-label="SwitchLED" id="redSensorToCloud/SwitchLED" />
                 <command default-label="Set LED Interval" id="redSensorToCloud/SetLedBlinkInterval">
-                    <parameter default-label="LedBlinkInterval" id="LedBlinkInterval" type="int" />
+                    <parameter default-label="LedBlinkInterval" id="LedBlinkInterval" type="string" />
                 </command>
             </node>
         </asset>

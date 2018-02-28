@@ -5,9 +5,6 @@
 #include "accelerometer.h"
 #include "gps.h"
 
-
-#define LIGHT_SENSOR_ENABLE
-
 //--------------------------------------------------------------------------------------------------
 /*
  * command definitions

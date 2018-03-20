@@ -107,16 +107,12 @@ struct Location3d
 //--------------------------------------------------------------------------------------------------
 struct SensorReadings
 {
-#ifdef LIGHT_SENSOR_ENABLE
     int32_t lightLevel;
-#endif // LIGHT_SENSOR_ENABLE
     double pressure;
     double temperature;
     struct Acceleration acc;
     struct Gyro gyro;
-#ifdef GPS_ENABLE
     struct Location3d location;
-#endif // GPS_ENABLE
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -129,12 +125,10 @@ static uint64_t GetCurrentTimestamp(void);
 static void SampleTimerHandler(le_timer_Ref_t timer);
 static void LedStateTimerHandler(le_timer_Ref_t timer);
 
-#ifdef LIGHT_SENSOR_ENABLE
 static le_result_t LightSensorRead(void *value);
 static bool LightSensorThreshold(const void *recordedValue, const void* readValue);
 static le_result_t LightSensorRecord(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
 static void LightSensorCopyValue(void *dest, const void *src);
-#endif // LIGHT_SENSOR_ENABLE
 
 static le_result_t PressureSensorRead(void *value);
 static bool PressureSensorThreshold(const void *recordedValue, const void* readValue);
@@ -156,12 +150,10 @@ static bool GyroThreshold(const void *recordedValue, const void* readValue);
 static le_result_t GyroRecord(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
 static void GyroCopyValue(void *dest, const void *src);
 
-#ifdef GPS_ENABLE
 static le_result_t GpsRead(void *value);
 static bool GpsThreshold(const void *recordedValue, const void* readValue);
 static le_result_t GpsRecord(le_avdata_RecordRef_t ref, uint64_t timestamp, void *value);
 static void GpsCopyValue(void *dest, const void *src);
-#endif // GPS_ENABLE
 
 static void AvSessionStateHandler (le_avdata_SessionState_t state, void *context);
 
@@ -223,7 +215,6 @@ static struct
 //--------------------------------------------------------------------------------------------------
 struct Item Items[] =
 {
-#ifdef LIGHT_SENSOR_ENABLE
     {
         .name = "light level",
         .read = LightSensorRead,
@@ -235,7 +226,6 @@ struct Item Items[] =
         .lastTimeRead = 0,
         .lastTimeRecorded = 0,
     },
-#endif // LIGHT_SENSOR_ENABLE
     {
         .name = "pressure",
         .read = PressureSensorRead,
@@ -280,7 +270,6 @@ struct Item Items[] =
         .lastTimeRead = 0,
         .lastTimeRecorded = 0,
     },
-#ifdef GPS_ENABLE
     {
         .name = "gps",
         .read = GpsRead,
@@ -292,7 +281,6 @@ struct Item Items[] =
         .lastTimeRead = 0,
         .lastTimeRecorded = 0,
     },
-#endif // GPS_ENABLE
 };
 
 
@@ -449,7 +437,6 @@ static void SampleTimerHandler
     }
 }
 
-#ifdef LIGHT_SENSOR_ENABLE
 //--------------------------------------------------------------------------------------------------
 /**
  * Read the light sensor
@@ -531,7 +518,6 @@ static void LightSensorCopyValue
     const int32_t *s = src;
     *d = *s;
 }
-#endif // LIGHT_SENSOR_ENABLE
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -922,7 +908,6 @@ static void GyroCopyValue
     d->z = s->z;
 }
 
-#ifdef GPS_ENABLE
 //--------------------------------------------------------------------------------------------------
 /**
  * Read the GPS location
@@ -1057,7 +1042,6 @@ static void GpsCopyValue
     d->altitude = s->altitude;
     d->vAccuracy = s->vAccuracy;
 }
-#endif // GPS_ENABLE
 
 //-------------------------------------------------------------------------------------------------
 /**

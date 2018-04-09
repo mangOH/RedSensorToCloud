@@ -1,7 +1,56 @@
 #include "legato.h"
 #include "interfaces.h"
-
+#include "periodicSensor.h"
 #include "gps.h"
+
+
+static void Sample
+(
+    psensor_Ref_t ref
+)
+{
+    double latitude;
+    double longitude;
+    double hAccuracy;
+    double altitude;
+    double vAccuracy;
+
+    le_result_t result = mangOH_ReadGps(&latitude, &longitude, &hAccuracy, &altitude, &vAccuracy);
+
+    if (result == LE_OK)
+    {
+        char json[256];
+
+        int len = snprintf(json,
+                           sizeof(json),
+                           "{ \"lat\": %lf, \"lon\": %lf, \"hAcc\": %lf,"
+                            " \"alt\": %lf, \"vAcc\": %lf }",
+                           latitude,
+                           longitude,
+                           hAccuracy,
+                           altitude,
+                           vAccuracy);
+        if (len >= sizeof(json))
+        {
+            LE_FATAL("JSON string (len %d) is longer than buffer (size %zu).", len, sizeof(json));
+        }
+
+        psensor_PushJson(ref, 0 /* now */, json);
+    }
+    else
+    {
+        LE_ERROR("Failed to read sensor (%s).", LE_RESULT_TXT(result));
+    }
+}
+
+
+void gps_Init
+(
+    void
+)
+{
+    psensor_Create("position", DHUBIO_DATA_TYPE_JSON, "", Sample);
+}
 
 
 le_result_t mangOH_ReadGps(

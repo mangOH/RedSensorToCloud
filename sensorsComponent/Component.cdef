@@ -10,6 +10,12 @@ requires:
         modemServices/le_adc.api
         positioning/le_posCtrl.api
         positioning/le_pos.api
+        dhubIO = io.api
+    }
+
+    component:
+    {
+        periodicSensor
     }
 
     file:
@@ -23,6 +29,9 @@ requires:
         /sys/bus/i2c/devices/0-0068/iio:device0/in_anglvel_y_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/0-0068/iio:device0/in_anglvel_z_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/0-0068/iio:device0/in_anglvel_scale  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_scale     /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_offset    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_raw       /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/0-0076/iio:device1/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device1/
         /sys/bus/i2c/devices/0-0076/iio:device1/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device1/
 #elif ${LEGATO_TARGET} = wp750x
@@ -34,6 +43,9 @@ requires:
         /sys/bus/i2c/devices/0-0068/iio:device0/in_anglvel_y_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/0-0068/iio:device0/in_anglvel_z_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/0-0068/iio:device0/in_anglvel_scale  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_scale     /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_offset    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_raw       /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/0-0076/iio:device1/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device1/
         /sys/bus/i2c/devices/0-0076/iio:device1/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device1/
 #elif ${LEGATO_TARGET} = wp76xx
@@ -45,6 +57,9 @@ requires:
         /sys/bus/i2c/devices/4-0068/iio:device0/in_anglvel_y_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/4-0068/iio:device0/in_anglvel_z_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/4-0068/iio:device0/in_anglvel_scale  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_scale     /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_offset    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_raw       /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/4-0076/iio:device1/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device1/
         /sys/bus/i2c/devices/4-0076/iio:device1/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device1/
 #elif ${LEGATO_TARGET} = wp77xx
@@ -56,6 +71,9 @@ requires:
         /sys/bus/i2c/devices/4-0068/iio:device0/in_anglvel_y_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/4-0068/iio:device0/in_anglvel_z_raw  /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/4-0068/iio:device0/in_anglvel_scale  /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_scale     /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_offset    /sys/devices/i2c-0/0-0068/iio:device0/
+        /sys/bus/i2c/devices/0-0068/iio:device0/in_temp_raw       /sys/devices/i2c-0/0-0068/iio:device0/
         /sys/bus/i2c/devices/4-0076/iio:device1/in_temp_input     /sys/devices/i2c-0/0-0076/iio:device1/
         /sys/bus/i2c/devices/4-0076/iio:device1/in_pressure_input /sys/devices/i2c-0/0-0076/iio:device1/
 #endif

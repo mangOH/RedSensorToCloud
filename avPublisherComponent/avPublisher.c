@@ -1,3 +1,22 @@
+//--------------------------------------------------------------------------------------------------
+/**
+ * @file avPublisher.c
+ *
+ * Implements a connection between AirVantage and a mangOH Red.
+ *
+ * Some "settings" and "commands" are provided to AirVantage that allow AirVantage to control
+ * some features of the device, such as the on-board LED.
+ *
+ * Some "variables" are provided to AirVantage that allow AirVantage to read (on-demand) the
+ * current values reported by sensors on the mangOH Red (such as the pressure sensor and gyro).
+ *
+ * Time-series data will be collected from the sensors via the Data Hub and will be pushed to
+ * AirVantage on-change.  This can be throttled to reduce the rate of reporting by can
+ * be configured in the COMPONENT_INIT function by changing the filtering and buffering parameters
+ * on the "observations" within the Data Hub.
+ */
+//--------------------------------------------------------------------------------------------------
+
 #include "legato.h"
 #include "interfaces.h"
 #include "lightSensor.h"
@@ -7,7 +26,7 @@
 
 //--------------------------------------------------------------------------------------------------
 /*
- * command definitions
+ * AirVantage "command" definitions
  */
 //--------------------------------------------------------------------------------------------------
 
@@ -16,7 +35,23 @@
 #define LED_CMD_LED_BLINK_INTERVAL_RES         "LedBlinkInterval"
 
 // command to switch LED
-#define LED_CMD_SWITCH_RES              "/SwitchLED"
+#define LED_CMD_ACTIVATE_RES                "/ActivateLED"
+#define LED_CMD_DEACTIVATE_RES              "/DeactivateLED"
+
+
+//--------------------------------------------------------------------------------------------------
+/*
+ * AirVantage "variable" definitions
+ */
+//--------------------------------------------------------------------------------------------------
+
+// command to set value
+#define LED_CMD_SET_LED_BLINK_INTERVAL_RES     "/SetLedBlinkInterval"
+#define LED_CMD_LED_BLINK_INTERVAL_RES         "LedBlinkInterval"
+
+// command to switch LED
+#define LED_CMD_ACTIVATE_RES                "/ActivateLED"
+#define LED_CMD_DEACTIVATE_RES              "/DeactivateLED"
 
 //--------------------------------------------------------------------------------------------------
 /*
@@ -120,10 +155,9 @@ struct SensorReadings
  * static function declarations
  */
 //--------------------------------------------------------------------------------------------------
-static void PushCallbackHandler(le_avdata_PushStatus_t status, void* context);
+static void AvPushCallbackHandler(le_avdata_PushStatus_t status, void* context);
 static uint64_t GetCurrentTimestamp(void);
 static void SampleTimerHandler(le_timer_Ref_t timer);
-static void LedStateTimerHandler(le_timer_Ref_t timer);
 
 static le_result_t LightSensorRead(void *value);
 static bool LightSensorThreshold(const void *recordedValue, const void* readValue);
@@ -164,11 +198,6 @@ static void AvSessionStateHandler (le_avdata_SessionState_t state, void *context
  * variable definitions
  */
 //--------------------------------------------------------------------------------------------------
-
-// Current LED status
-static bool LedOn;
-static int LedBlinkDuration = 0;
-static le_timer_Ref_t LedStateTimer;
 
 // Wait time between each round of sensor readings.
 static const int DelayBetweenReadings = 1;
@@ -217,8 +246,7 @@ struct Item Items[] =
 {
     {
         .name = "light level",
-        .read = LightSensorRead,
-        .thresholdCheck = LightSensorThreshold,
+        .dhubPath = "lightLevel",
         .record = LightSensorRecord,
         .copyValue = LightSensorCopyValue,
         .lastValueRead = &SensorData.read.lightLevel,
@@ -293,13 +321,13 @@ struct Item Items[] =
 
 //--------------------------------------------------------------------------------------------------
 /**
- * Handles notification of LWM2M push status.
+ * Handles notification of AirVantage time-series push status.
  *
  * This function will warn if there is an error in pushing data, but it does not make any attempt to
  * retry pushing the data.
  */
 //--------------------------------------------------------------------------------------------------
-static void PushCallbackHandler
+static void AvPushCallbackHandler
 (
     le_avdata_PushStatus_t status, ///< Push success/failure status
     void* context                  ///< Not used
@@ -423,7 +451,7 @@ static void SampleTimerHandler
                 }
             }
 
-            le_result_t r = le_avdata_PushRecord(RecordRef, PushCallbackHandler, NULL);
+            le_result_t r = le_avdata_PushRecord(RecordRef, AvPushCallbackHandler, NULL);
             if (r != LE_OK)
             {
                 LE_ERROR("Failed to push record - %s", LE_RESULT_TXT(r));
@@ -1045,30 +1073,6 @@ static void GpsCopyValue
 
 //-------------------------------------------------------------------------------------------------
 /**
- * LED state timer handler.
- */
-//-------------------------------------------------------------------------------------------------
-static void LedStateTimerHandler
-(
-    le_timer_Ref_t timer  ///< Led state timer
-)
-{
-    if (!LedOn)
-    {
-        LE_DEBUG("turn on LED");
-        ma_led_TurnOn();
-        LedOn = true;
-    }
-    else
-    {
-        LE_DEBUG("turn off LED");
-        ma_led_TurnOff();
-        LedOn = false;
-    }
-}
-
-//-------------------------------------------------------------------------------------------------
-/**
  * Command data handler.
  * This function is returned whenever AirVantage performs an execute on the set value command
  */
@@ -1083,9 +1087,8 @@ static void SetLedBlinkIntervalCmd
 {
     char val[32];
     le_result_t result = LE_OK;
-    int NewLedBlinkDuration;
 
-    LE_INFO("Set value");
+    LE_INFO("Set LED blink interval");
 
     result = le_avdata_GetStringArg(argumentList, LED_CMD_LED_BLINK_INTERVAL_RES, val, sizeof(val));
     if (result != LE_OK)
@@ -1094,42 +1097,21 @@ static void SetLedBlinkIntervalCmd
         goto cleanup;
     }
 
-    LE_INFO("value('%s')", val);
-    NewLedBlinkDuration = atoi(val);
-    if (NewLedBlinkDuration >= 0)
+    LE_INFO("interval('%s')", val);
+    int ledBlinkDuration = atoi(val);
+    if (ledBlinkDuration < 0)
     {
-        LedBlinkDuration = NewLedBlinkDuration;
-        if (LedBlinkDuration > 0)
-        {
-            result = le_timer_Stop(LedStateTimer);
-            if (result != LE_OK)
-            {
-                LE_DEBUG("LED timer not running");
-            }
-
-            LE_ASSERT_OK(le_timer_SetMsInterval(LedStateTimer, LedBlinkDuration * 1000));
-
-            result = le_timer_Start(LedStateTimer);
-            if (result != LE_BUSY)
-            {
-                LE_ASSERT_OK(result);
-            }
-        }
-        else
-        {
-            LE_ASSERT_OK(le_timer_SetRepeat(LedStateTimer, 0));
-            result = le_timer_Stop(LedStateTimer);
-            if (result != LE_OK)
-            {
-                LE_DEBUG("LED timer not running");
-            }
-        }
+        LE_WARN("Invalid max interval between publish (%d >= 0)", ledBlinkDuration);
+        result = LE_OUT_OF_RANGE;
+        goto cleanup;
     }
     else
     {
-        LE_WARN("Invalid max interval between publish (%d >= 0)", NewLedBlinkDuration);
-        result = LE_OUT_OF_RANGE;
-        goto cleanup;
+        // Push the period (which is 2 * the interval) to the Data Hub.
+        dhubAdmin_PushNumeric("/app/ledService/blinkPeriod", 0.0, (double)(ledBlinkDuration * 2));
+
+        // Activate the LED.
+        dhubAdmin_PushBoolean("/app/ledService/value", 0.0, true);
     }
 
 cleanup:
@@ -1139,10 +1121,10 @@ cleanup:
 //-------------------------------------------------------------------------------------------------
 /**
  * Command data handler.
- * This function is returned whenever AirVantage performs an execute on the switch LED command
+ * This function is returned whenever AirVantage performs an execute on the activate LED command
  */
 //-------------------------------------------------------------------------------------------------
-static void SwitchLEDCmd
+static void ActivateLedCmd
 (
     const char* path,
     le_avdata_AccessType_t accessType,
@@ -1150,20 +1132,30 @@ static void SwitchLEDCmd
     void* contextPtr
 )
 {
-    LE_INFO("Switch LED");
+    LE_INFO("Activate LED");
 
-    if (!LedOn)
-    {
-        LE_DEBUG("turn on LED");
-        ma_led_TurnOn();
-        LedOn = true;
-    }
-    else
-    {
-        LE_DEBUG("turn off LED");
-        ma_led_TurnOff();
-        LedOn = false;
-    }
+    dhubAdmin_PushBoolean("/app/ledService/value", 0.0, true);
+
+    le_avdata_ReplyExecResult(argumentList, LE_OK);
+}
+
+//-------------------------------------------------------------------------------------------------
+/**
+ * Command data handler.
+ * This function is returned whenever AirVantage performs an execute on the deactivate LED command
+ */
+//-------------------------------------------------------------------------------------------------
+static void DeactivateLedCmd
+(
+    const char* path,
+    le_avdata_AccessType_t accessType,
+    le_avdata_ArgumentListRef_t argumentList,
+    void* contextPtr
+)
+{
+    LE_INFO("Deactivate LED");
+
+    dhubAdmin_PushBoolean("/app/ledService/value", 0.0, false);
 
     le_avdata_ReplyExecResult(argumentList, LE_OK);
 }
@@ -1221,17 +1213,20 @@ static void AvSessionStateHandler
 
 COMPONENT_INIT
 {
+    // Create a setting to allow the cloud to push a blink interval for the LED.
     le_avdata_CreateResource(LED_CMD_LED_BLINK_INTERVAL_RES, LE_AVDATA_ACCESS_SETTING);
+
+    // Create a command to allow the cloud to command the LED to blink.
     le_avdata_CreateResource(LED_CMD_SET_LED_BLINK_INTERVAL_RES, LE_AVDATA_ACCESS_COMMAND);
-    le_avdata_AddResourceEventHandler(LED_CMD_SET_LED_BLINK_INTERVAL_RES, SetLedBlinkIntervalCmd, NULL);
+    le_avdata_AddResourceEventHandler(LED_CMD_SET_LED_BLINK_INTERVAL_RES,
+                                      SetLedBlinkIntervalCmd,
+                                      NULL);
 
-    LedStateTimer = le_timer_Create("Led State");
-    LE_ASSERT_OK(le_timer_SetRepeat(LedStateTimer, 0));
-    LE_ASSERT_OK(le_timer_SetHandler(LedStateTimer, LedStateTimerHandler));
-
-    le_avdata_CreateResource(LED_CMD_SWITCH_RES, LE_AVDATA_ACCESS_COMMAND);
-    le_avdata_AddResourceEventHandler(LED_CMD_SWITCH_RES, SwitchLEDCmd, NULL);
-    LedOn = ma_led_GetLedStatus();
+    // Create a couple of commands for activating and deactivating the LED.
+    le_avdata_CreateResource(LED_CMD_ACTIVATE_RES, LE_AVDATA_ACCESS_COMMAND);
+    le_avdata_AddResourceEventHandler(LED_CMD_ACTIVATE_RES, ActivateLedCmd, NULL);
+    le_avdata_CreateResource(LED_CMD_DEACTIVATE_RES, LE_AVDATA_ACCESS_COMMAND);
+    le_avdata_AddResourceEventHandler(LED_CMD_DEACTIVATE_RES, DeactivateLedCmd, NULL);
 
     RecordRef = le_avdata_CreateRecord();
 

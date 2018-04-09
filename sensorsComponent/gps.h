@@ -3,6 +3,8 @@
 
 #include "legato.h"
 
+LE_SHARED void gps_Init(void);
+
 LE_SHARED le_result_t mangOH_ReadGps(
     double *latitude,     ///< WGS84 Latitude in degrees, positive North [resolution 1e-6].
     double *longitude,    ///< WGS84 Longitude in degrees, positive East [resolution 1e-6].

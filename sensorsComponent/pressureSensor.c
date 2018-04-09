@@ -1,11 +1,61 @@
 #include "legato.h"
 #include "interfaces.h"
-
+#include "periodicSensor.h"
 #include "pressureSensor.h"
 #include "sensorUtils.h"
 
 static const char PressureFile[] = "/sys/devices/i2c-0/0-0076/iio:device1/in_pressure_input";
 static const char TemperatureFile[] = "/sys/devices/i2c-0/0-0076/iio:device1/in_temp_input";
+
+static void SamplePressure
+(
+    psensor_Ref_t ref
+)
+{
+    double sample;
+
+    le_result_t result = mangOH_ReadPressureSensor(&sample);
+
+    if (result == LE_OK)
+    {
+        psensor_PushNumeric(ref, 0 /* now */, sample);
+    }
+    else
+    {
+        LE_ERROR("Failed to read sensor (%s).", LE_RESULT_TXT(result));
+    }
+}
+
+
+static void SampleTemperature
+(
+    psensor_Ref_t ref
+)
+{
+    double sample;
+
+    le_result_t result = mangOH_ReadTemperatureSensor(&sample);
+
+    if (result == LE_OK)
+    {
+        psensor_PushNumeric(ref, 0 /* now */, sample);
+    }
+    else
+    {
+        LE_ERROR("Failed to read sensor (%s).", LE_RESULT_TXT(result));
+    }
+}
+
+
+void pressure_Init
+(
+    void
+)
+{
+    psensor_Create("pressure", DHUBIO_DATA_TYPE_NUMERIC, "kPa", SamplePressure);
+    psensor_Create("pressure/temp", DHUBIO_DATA_TYPE_NUMERIC, "degC", SampleTemperature);
+}
+
 
 /**
  * Reports the pressure kPa.

@@ -14,6 +14,8 @@
  * AirVantage on-change.  This can be throttled to reduce the rate of reporting by can
  * be configured in the COMPONENT_INIT function by changing the filtering and buffering parameters
  * on the "observations" within the Data Hub.
+ *
+ * Copyright (C) Sierra Wireless Inc.
  */
 //--------------------------------------------------------------------------------------------------
 
@@ -38,20 +40,6 @@
 #define LED_CMD_ACTIVATE_RES                "/ActivateLED"
 #define LED_CMD_DEACTIVATE_RES              "/DeactivateLED"
 
-
-//--------------------------------------------------------------------------------------------------
-/*
- * AirVantage "variable" definitions
- */
-//--------------------------------------------------------------------------------------------------
-
-// command to set value
-#define LED_CMD_SET_LED_BLINK_INTERVAL_RES     "/SetLedBlinkInterval"
-#define LED_CMD_LED_BLINK_INTERVAL_RES         "LedBlinkInterval"
-
-// command to switch LED
-#define LED_CMD_ACTIVATE_RES                "/ActivateLED"
-#define LED_CMD_DEACTIVATE_RES              "/DeactivateLED"
 
 //--------------------------------------------------------------------------------------------------
 /*
@@ -246,7 +234,8 @@ struct Item Items[] =
 {
     {
         .name = "light level",
-        .dhubPath = "lightLevel",
+        .read = LightSensorRead,
+        .thresholdCheck = LightSensorThreshold,
         .record = LightSensorRecord,
         .copyValue = LightSensorCopyValue,
         .lastValueRead = &SensorData.read.lightLevel,

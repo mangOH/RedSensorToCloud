@@ -9,7 +9,7 @@ requires:
     api:
     {
         airVantage/le_avdata.api
-        dhubAdmin = dhubAdmin.api
+        dhubAdmin = admin.api
     }
 
     component:

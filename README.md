@@ -1,8 +1,11 @@
 RedSensorToCloud
 ================
 
-This app provides a way to gather sensor data from the built-in sensors of a
-mangOH Red DV3 and publish that data to AirVantage using LWM2M.  This app
-attempts to conserve bandwidth by publishing only when the sensor readings
-exceed preprogrammed thresholds or if no readings have been published for quite
-a while.
+This package provides components that can be used to interact with the sensors
+and actuators on the mangOH Red DV3 and/or push that data to Sierra Wireless's
+AirVantage(tm) cloud service.
+
+There are two .adef files provided for two apps:
+- redSensor: Interfaces all sensors with the Legato Data Hub and provides APIs
+             for direct function-call-oriented access by client apps.
+- redCloud: Takes data from the Data Hub and pushes it to AirVantage.

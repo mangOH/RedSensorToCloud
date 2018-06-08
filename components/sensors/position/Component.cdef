@@ -1,0 +1,25 @@
+//--------------------------------------------------------------------------------------------------
+/**
+ * Component definition file for the mangOH Red position sensor interface component.
+ */
+//--------------------------------------------------------------------------------------------------
+
+requires:
+{
+    api:
+    {
+        positioning/le_posCtrl.api
+        positioning/le_pos.api
+        dhubIO = io.api
+    }
+
+    component:
+    {
+        periodicSensor
+    }
+}
+
+sources:
+{
+    position.c
+}

@@ -3,7 +3,7 @@
     xmlns:app="http://www.sierrawireless.com/airvantage/application/1.0"
     type="mangoh.io.sensortocloud.app"
     name="RedSensorToCloud"
-    revision="2.0">
+    revision="3.0">
   <application-manager use="LWM2M_SW"/>
   <capabilities>
     <data>
@@ -33,8 +33,9 @@
               <variable default-label="Temperature" path="Temperature" type="double" />
             </node>
           </node>
-          <node path="Commands" default-label="Commands">          
-            <command default-label="SwitchLED" id="redSensorToCloud/SwitchLED" />
+          <node path="Commands" default-label="Commands">
+            <command default-label="ActivateLED" id="redSensorToCloud/ActivateLED" />
+            <command default-label="DeactivateLED" id="redSensorToCloud/DeactivateLED" />
             <command default-label="Set LED Interval" id="redSensorToCloud/SetLedBlinkInterval">
               <parameter default-label="LedBlinkInterval" id="LedBlinkInterval" type="string" />
             </command>

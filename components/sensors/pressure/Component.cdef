@@ -1,0 +1,55 @@
+//--------------------------------------------------------------------------------------------------
+/**
+ * Component definition file for the mangOH Red pressure/temperature sensor interface component.
+ */
+//--------------------------------------------------------------------------------------------------
+
+provides:
+{
+    api:
+    {
+        pressure.api
+        temperature.api
+    }
+}
+
+requires:
+{
+    api:
+    {
+        dhubIO = io.api
+    }
+
+    component:
+    {
+        periodicSensor
+        ../../fileUtils
+    }
+
+    file:
+    {
+#if ${LEGATO_TARGET} = wp85
+        /sys/bus/i2c/devices/0-0076/iio:device1/in_temp_input     /driver/
+        /sys/bus/i2c/devices/0-0076/iio:device1/in_pressure_input /driver/
+#elif ${LEGATO_TARGET} = wp750x
+        /sys/bus/i2c/devices/0-0076/iio:device1/in_temp_input     /driver/
+        /sys/bus/i2c/devices/0-0076/iio:device1/in_pressure_input /driver/
+#elif ${LEGATO_TARGET} = wp76xx
+        /sys/bus/i2c/devices/4-0076/iio:device1/in_temp_input     /driver/
+        /sys/bus/i2c/devices/4-0076/iio:device1/in_pressure_input /driver/
+#elif ${LEGATO_TARGET} = wp77xx
+        /sys/bus/i2c/devices/4-0076/iio:device1/in_temp_input     /driver/
+        /sys/bus/i2c/devices/4-0076/iio:device1/in_pressure_input /driver/
+#endif
+    }
+}
+
+sources:
+{
+    pressureSensor.c
+}
+
+cflags:
+{
+    -I$CURDIR/../../fileUtils
+}

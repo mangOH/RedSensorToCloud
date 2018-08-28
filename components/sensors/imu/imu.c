@@ -271,4 +271,7 @@ COMPONENT_INIT
     psensor_Create("gyro", DHUBIO_DATA_TYPE_JSON, "", SampleGyro);
     psensor_Create("accel", DHUBIO_DATA_TYPE_JSON, "", SampleAccel);
     psensor_Create("imu/temp", DHUBIO_DATA_TYPE_NUMERIC, "degC", SampleTemp);
+
+    dhubIO_SetJsonExample("gyro/value", "{\"x\":0.1,\"y\":0.2,\"z\":0.3}");
+    dhubIO_SetJsonExample("accel/value", "{\"x\":0.1,\"y\":0.2,\"z\":0.3}");
 }

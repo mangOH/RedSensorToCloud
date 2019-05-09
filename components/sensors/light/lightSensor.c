@@ -18,7 +18,8 @@ const char lightSensorAdc[] = "EXT_ADC3";
 
 static void Sample
 (
-    psensor_Ref_t ref
+    psensor_Ref_t ref,
+    void *contextPtr
 )
 {
     int32_t sample;
@@ -38,7 +39,7 @@ static void Sample
 
 COMPONENT_INIT
 {
-    psensor_Create("light", DHUBIO_DATA_TYPE_NUMERIC, "", Sample);
+    psensor_Create("light", DHUBIO_DATA_TYPE_NUMERIC, "", Sample, NULL);
 }
 
 

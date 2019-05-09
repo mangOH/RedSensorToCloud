@@ -13,7 +13,8 @@
 
 static void Sample
 (
-    psensor_Ref_t ref
+    psensor_Ref_t ref,
+    void *contextPtr
 )
 {
     int32_t lat;
@@ -59,5 +60,5 @@ COMPONENT_INIT
 
     // Use the periodic sensor component from the Data Hub to implement the timer and Data Hub
     // interface.  We'll provide samples as JSON structures.
-    psensor_Create("position", DHUBIO_DATA_TYPE_JSON, "", Sample);
+    psensor_Create("position", DHUBIO_DATA_TYPE_JSON, "", Sample, NULL);
 }

@@ -21,7 +21,8 @@ static const char TemperatureFile[] = "/driver/in_temp_input";
 
 static void SamplePressure
 (
-    psensor_Ref_t ref
+    psensor_Ref_t ref,
+    void *contextPtr
 )
 {
     double sample;
@@ -41,7 +42,8 @@ static void SamplePressure
 
 static void SampleTemperature
 (
-    psensor_Ref_t ref
+    psensor_Ref_t ref,
+    void *contextPtr
 )
 {
     double sample;
@@ -108,6 +110,6 @@ COMPONENT_INIT
 {
     // Use the periodic sensor component from the Data Hub to implement the timers and the
     // interface to the Data Hub.
-    psensor_Create("pressure", DHUBIO_DATA_TYPE_NUMERIC, "kPa", SamplePressure);
-    psensor_Create("pressure/temp", DHUBIO_DATA_TYPE_NUMERIC, "degC", SampleTemperature);
+    psensor_Create("pressure", DHUBIO_DATA_TYPE_NUMERIC, "kPa", SamplePressure, NULL);
+    psensor_Create("pressure/temp", DHUBIO_DATA_TYPE_NUMERIC, "degC", SampleTemperature, NULL);
 }

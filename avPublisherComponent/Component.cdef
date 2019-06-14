@@ -9,7 +9,7 @@ requires:
     api:
     {
         airVantage/le_avdata.api
-        ${MANGOH_ROOT}/apps/LedService/ma_led.api
+        ma_led.api
     }
 
     component:

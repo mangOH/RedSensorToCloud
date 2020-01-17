@@ -1,0 +1,20 @@
+requires:
+{
+    api:
+    {
+        airVantage/le_avdata.api
+        dhubIO = io.api
+        dhubQuery = query.api
+        dhubAdmin = admin.api
+    }
+
+    component:
+    {
+        json
+    }
+}
+
+sources:
+{
+    avPublisher.c
+}

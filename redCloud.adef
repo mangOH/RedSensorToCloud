@@ -1,0 +1,29 @@
+sandboxed: true
+start: manual
+version: 1.0
+
+executables:
+{
+    cloud = ( components/avPublisher )
+}
+
+processes:
+{
+    run:
+    {
+        ( cloud )
+    }
+
+    envVars:
+    {
+        LE_LOG_LEVEL = DEBUG
+    }
+}
+
+bindings:
+{
+    cloud.avPublisher.le_avdata -> avcService.le_avdata
+    cloud.avPublisher.dhubAdmin -> dataHub.admin
+    cloud.avPublisher.dhubQuery -> dataHub.query
+    cloud.avPublisher.dhubIO -> dataHub.io
+}

@@ -1,0 +1,50 @@
+sandboxed: true
+start: auto
+version: 3.0
+
+extern:
+{
+    imu = redSensor.imu.imu
+    imuTemp = redSensor.imu.temperature
+
+    light = redSensor.light.light
+    pressure = redSensor.pressure.pressure
+    temperature = redSensor.pressure.temperature
+}
+
+executables:
+{
+    redSensor = (   components/sensors/imu
+                    components/sensors/light
+                    components/sensors/position
+                    components/sensors/pressure
+                )
+}
+
+processes:
+{
+    run:
+    {
+        ( redSensor )
+    }
+
+    envVars:
+    {
+        LE_LOG_LEVEL = DEBUG
+    }
+}
+
+bindings:
+{
+    redSensor.light.le_adc -> modemService.le_adc
+    redSensor.imu.le_adc -> modemService.le_adc
+
+    redSensor.position.le_pos -> positioningService.le_pos
+    redSensor.position.le_posCtrl -> positioningService.le_posCtrl
+
+    redSensor.periodicSensor.dhubIO -> dataHub.io
+    redSensor.imu.dhubIO -> dataHub.io
+    redSensor.light.dhubIO -> dataHub.io
+    redSensor.position.dhubIO -> dataHub.io
+    redSensor.pressure.dhubIO -> dataHub.io
+}

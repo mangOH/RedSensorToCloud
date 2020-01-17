@@ -1,0 +1,32 @@
+//--------------------------------------------------------------------------------------------------
+/**
+ * Component definition file for the mangOH Red light sensor interface component.
+ */
+//--------------------------------------------------------------------------------------------------
+
+provides:
+{
+    api:
+    {
+        light.api
+    }
+}
+
+requires:
+{
+    api:
+    {
+        modemServices/le_adc.api
+        dhubIO = io.api
+    }
+
+    component:
+    {
+        periodicSensor
+    }
+}
+
+sources:
+{
+    lightSensor.c
+}

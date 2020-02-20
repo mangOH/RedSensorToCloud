@@ -134,52 +134,51 @@ static bool IsAvSessionActive = false;
 
 /// Cloud push tracking record for the accelerometer.
 static Sensor_t Accelerometer = {
-                                    obsPath: ACCEL_OBS_PATH,
-                                    lastDeliveredTimestamp: 0,
-                                    timestamp: 0,
-                                    state: SENSOR_STATE_IDLE
-                                };
+    .obsPath=ACCEL_OBS_PATH,
+    .lastDeliveredTimestamp=0,
+    .timestamp=0,
+    .state=SENSOR_STATE_IDLE,
+};
 
 /// Cloud push tracking record for the gyroscope.
 static Sensor_t Gyroscope = {
-                                    obsPath: GYRO_OBS_PATH,
-                                    lastDeliveredTimestamp: 0,
-                                    timestamp: 0,
-                                    state: SENSOR_STATE_IDLE
-                                };
+    .obsPath=GYRO_OBS_PATH,
+    .lastDeliveredTimestamp=0,
+    .timestamp=0,
+    .state=SENSOR_STATE_IDLE,
+};
 
 /// Cloud push tracking record for the light level.
 static Sensor_t LightSensor = {
-                                    obsPath: LIGHT_OBS_PATH,
-                                    lastDeliveredTimestamp: 0,
-                                    timestamp: 0,
-                                    state: SENSOR_STATE_IDLE
-                                };
+    .obsPath=LIGHT_OBS_PATH,
+    .lastDeliveredTimestamp=0,
+    .timestamp=0,
+    .state=SENSOR_STATE_IDLE,
+};
 
 /// Cloud push tracking record for the pressure.
 static Sensor_t PressureSensor = {
-                                    obsPath: PRESSURE_OBS_PATH,
-                                    lastDeliveredTimestamp: 0,
-                                    timestamp: 0,
-                                    state: SENSOR_STATE_IDLE
-                                };
+    .obsPath=PRESSURE_OBS_PATH,
+    .lastDeliveredTimestamp=0,
+    .timestamp=0,
+    .state=SENSOR_STATE_IDLE,
+};
 
 /// Cloud push tracking record for the temperature.
 static Sensor_t Thermometer = {
-                                    obsPath: TEMP_OBS_PATH,
-                                    lastDeliveredTimestamp: 0,
-                                    timestamp: 0,
-                                    state: SENSOR_STATE_IDLE
-                                };
+    .obsPath=TEMP_OBS_PATH,
+    .lastDeliveredTimestamp=0,
+    .timestamp=0,
+    .state=SENSOR_STATE_IDLE,
+};
 
 /// Cloud push tracking record for the position.
 static Sensor_t PositionSensor = {
-                                    obsPath: POS_OBS_PATH,
-                                    lastDeliveredTimestamp: 0,
-                                    timestamp: 0,
-                                    state: SENSOR_STATE_IDLE
-                                };
-
+    .obsPath=POS_OBS_PATH,
+    .lastDeliveredTimestamp=0,
+    .timestamp=0,
+    .state=SENSOR_STATE_IDLE,
+};
 
 
 //--------------------------------------------------------------------------------------------------

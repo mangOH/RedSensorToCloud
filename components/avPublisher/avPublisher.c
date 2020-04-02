@@ -41,7 +41,6 @@
 //--------------------------------------------------------------------------------------------------
 
 // Polling periods (seconds):
-
 #define ACCEL_PERIOD 10
 #define GYRO_PERIOD 10
 #define LIGHT_PERIOD 10
@@ -50,7 +49,6 @@
 #define POS_PERIOD 10
 
 // Buffer sizes (# of samples):
-
 #define ACCEL_BUFFER_COUNT 100
 #define GYRO_BUFFER_COUNT 100
 #define LIGHT_BUFFER_COUNT 100
@@ -59,13 +57,11 @@
 #define POS_BUFFER_COUNT 100
 
 // Change-by thresholds:
-
 #define LIGHT_CHANGE_BY 200
 #define PRESSURE_CHANGE_BY 1.0 // kPa
 #define TEMP_CHANGE_BY 2.0  // degC
 
 // Data Hub Observation resource paths:
-
 #define ACCEL_OBS_PATH "/obs/accel"
 #define GYRO_OBS_PATH "/obs/gyro"
 #define LIGHT_OBS_PATH "/obs/light"
@@ -74,7 +70,6 @@
 #define POS_OBS_PATH "/obs/position"
 
 // Data Hub sensor Input resource paths:
-
 #define ACCEL_SENSOR_INPUT_PATH     "/app/redSensor/accel/value"
 #define GYRO_SENSOR_INPUT_PATH      "/app/redSensor/gyro/value"
 #define LIGHT_SENSOR_INPUT_PATH     "/app/redSensor/light/value"
@@ -187,7 +182,6 @@ static Sensor_t PositionSensor = {
  */
 //--------------------------------------------------------------------------------------------------
 
-
 static void PushBacklog(Sensor_t* sensorPtr);
 
 
@@ -207,7 +201,6 @@ static void HandleAvPushComplete
     switch (status)
     {
         case LE_AVDATA_PUSH_SUCCESS:
-
             // Remember the timestamp we last successfully delivered.
             sensorPtr->lastDeliveredTimestamp = sensorPtr->timestamp;
 
@@ -220,7 +213,6 @@ static void HandleAvPushComplete
             return;
 
         case LE_AVDATA_PUSH_FAILED:
-
             LE_WARN("Push to AirVantage failed (%s). Retrying...", sensorPtr->obsPath);
 
             // Try this one again.
@@ -231,7 +223,6 @@ static void HandleAvPushComplete
 
     LE_FATAL("Unexpected push result status %d (%s).", status, sensorPtr->obsPath);
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -271,7 +262,6 @@ static le_result_t PushLightLevel
     }
 
 done:
-
     le_avdata_DeleteRecord(rec);
 
     return result;
@@ -315,12 +305,10 @@ static le_result_t PushPressure
     }
 
 done:
-
     le_avdata_DeleteRecord(rec);
 
     return result;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -360,12 +348,10 @@ static le_result_t PushTemperature
     }
 
 done:
-
     le_avdata_DeleteRecord(rec);
 
     return result;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -401,7 +387,6 @@ static double ExtractNumber
     }
 
     double number = json_ConvertToNumber(member);
-
     if (isnan(number))
     {
         LE_CRIT("Unable to convert '%s' to a number! (member '%s' of '%s')",
@@ -412,7 +397,6 @@ static double ExtractNumber
 
     return number;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -497,12 +481,10 @@ static le_result_t PushAcceleration
     }
 
 done:
-
     le_avdata_DeleteRecord(rec);
 
     return result;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -586,12 +568,10 @@ static le_result_t PushAngularVelocity
     }
 
 done:
-
     le_avdata_DeleteRecord(rec);
 
     return result;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -704,12 +684,10 @@ static le_result_t PushPosition
     }
 
 done:
-
     le_avdata_DeleteRecord(rec);
 
     return result;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -726,7 +704,6 @@ static void PushNumeric
     le_result_t result;
 
     sensorPtr->timestamp = timestamp;
-
     if (sensorPtr == &LightSensor)
     {
         result = PushLightLevel(timestamp, value);
@@ -753,7 +730,6 @@ static void PushNumeric
         // Wait for another update from the sensor to trigger a retry.
     }
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -809,7 +785,6 @@ static void PushJson
     }
 }
 
-
 //--------------------------------------------------------------------------------------------------
 /**
  * Push a sensor's backlog (or at least, the oldest samples of the backlog).
@@ -819,7 +794,6 @@ static void PushBacklog
 (
     Sensor_t* sensorPtr
 )
-//--------------------------------------------------------------------------------------------------
 {
     // Fetch the oldest undelivered record from the Data Hub observation buffer for this sensor.
     if (   (sensorPtr == &Accelerometer)
@@ -876,7 +850,6 @@ static void PushBacklog
         LE_FATAL("Unrecognized sensor object %p.", sensorPtr);
     }
 }
-
 
 //-------------------------------------------------------------------------------------------------
 /**
@@ -940,9 +913,7 @@ static void ActivateLedCmd
 )
 {
     LE_DEBUG("Activate LED");
-
     dhubAdmin_PushBoolean("/app/ledService/value", 0.0, true);
-
     le_avdata_ReplyExecResult(argumentList, LE_OK);
 }
 
@@ -961,9 +932,7 @@ static void DeactivateLedCmd
 )
 {
     LE_DEBUG("Deactivate LED");
-
     dhubAdmin_PushBoolean("/app/ledService/value", 0.0, false);
-
     le_avdata_ReplyExecResult(argumentList, LE_OK);
 }
 
@@ -984,7 +953,6 @@ static void AvSessionStateHandler
     switch (state)
     {
         case LE_AVDATA_SESSION_STARTED:
-        {
             // Temporary workaround for the session state problem.
             if (IsAvSessionActive)
             {
@@ -993,27 +961,20 @@ static void AvSessionStateHandler
             else
             {
                 LE_INFO("AirVantage(tm) session started");
-
                 IsAvSessionActive = true;
             }
             break;
-        }
 
         case LE_AVDATA_SESSION_STOPPED:
-        {
             LE_INFO("AirVantage(tm) session stopped");
-
             IsAvSessionActive = false;
-
             break;
-        }
 
         default:
             LE_ERROR("Unsupported AV session state %d", state);
             break;
     }
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -1032,34 +993,25 @@ static void HandleNumericUpdate
     switch (sensorPtr->state)
     {
         case SENSOR_STATE_IDLE:
-
             sensorPtr->state = SENSOR_STATE_PUSHING;
-
             PushNumeric(sensorPtr, timestamp, value);
-
             break;
 
         case SENSOR_STATE_PUSHING:
-
             sensorPtr->state = SENSOR_STATE_BACKLOGGED;
-
             break;
 
         case SENSOR_STATE_BACKLOGGED:
-
             // Don't need to do anything.  Completion of the current push will result in more
             // being pushed.
             break;
 
         case SENSOR_STATE_FAULT:
-
             sensorPtr->state = SENSOR_STATE_BACKLOGGED;
             PushBacklog(sensorPtr);
-
             break;
     }
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -1078,34 +1030,25 @@ static void HandleJsonUpdate
     switch (sensorPtr->state)
     {
         case SENSOR_STATE_IDLE:
-
             sensorPtr->state = SENSOR_STATE_PUSHING;
-
             PushJson(sensorPtr, timestamp, value);
-
             break;
 
         case SENSOR_STATE_PUSHING:
-
             sensorPtr->state = SENSOR_STATE_BACKLOGGED;
-
             break;
 
         case SENSOR_STATE_BACKLOGGED:
-
             // Don't need to do anything.  Completion of the current push will result in more
             // being pushed.
             break;
 
         case SENSOR_STATE_FAULT:
-
             sensorPtr->state = SENSOR_STATE_BACKLOGGED;
             PushBacklog(sensorPtr);
-
             break;
     }
 }
-
 
 //--------------------------------------------------------------------------------------------------
 /**
@@ -1120,7 +1063,6 @@ static void CreateObservation
 )
 {
     le_result_t result = dhubAdmin_CreateObs(sensorPtr->obsPath);
-
     if (result != LE_OK)
     {
         LE_FATAL("Failed to create Data Hub observation at path '%s' (%s).",
@@ -1136,7 +1078,6 @@ static void CreateObservation
     }
 }
 
-
 //--------------------------------------------------------------------------------------------------
 /**
  * Configure and enable a sensor whose 'value' input is at a given path.
@@ -1149,7 +1090,6 @@ static void ConfigureSensor
 )
 {
     const char* lastSlashPtr = strrchr(inputPath, '/');
-
     if (lastSlashPtr == NULL)
     {
         LE_FATAL("No '/' found in path '%s'.", inputPath);
@@ -1171,7 +1111,6 @@ static void ConfigureSensor
     (void)strcpy(path + basePathLen, "enable");   // Guaranteed to null-terminate.
     dhubAdmin_PushBoolean(path, 0.0, true);
 }
-
 
 //--------------------------------------------------------------------------------------------------
 COMPONENT_INIT
